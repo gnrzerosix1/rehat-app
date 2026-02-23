@@ -14,7 +14,7 @@ export default function Feed({ session }: { session: any }) {
   const fetchPosts = async () => {
     const { data, error } = await supabase
       .from('posts')
-      .select('*')
+      .select('*, profiles(username)')
       .order('created_at', { ascending: false });
     
     if (!error && data) {
@@ -38,6 +38,26 @@ export default function Feed({ session }: { session: any }) {
     setLoading(false);
   };
 
+  const renderTextWithLinks = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.split(urlRegex).map((part, i) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline hover:bg-black hover:text-white transition-colors break-all"
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
   return (
     <div className="max-w-2xl mx-auto p-4">
       <div className="mb-8 p-6 brutal-border brutal-shadow bg-white">
@@ -45,7 +65,7 @@ export default function Feed({ session }: { session: any }) {
         <form onSubmit={handlePost} className="flex flex-col gap-4">
           <textarea
             className="w-full brutal-input min-h-[120px] resize-none"
-            placeholder="Gimana nasib lu hari ini? Jujur aja, nggak ada HRD di sini."
+            placeholder="Gimana nasib lu hari ini? Jujur aja, nggak ada HRD di sini. Boleh share link loker juga."
             value={newPost}
             onChange={(e) => setNewPost(e.target.value)}
             disabled={loading}
@@ -62,9 +82,9 @@ export default function Feed({ session }: { session: any }) {
       <div className="flex flex-col gap-6">
         {posts.map((post) => (
           <div key={post.id} className="p-6 brutal-border bg-white">
-            <p className="font-mono text-lg mb-4 whitespace-pre-wrap">{post.content}</p>
+            <p className="font-mono text-lg mb-4 whitespace-pre-wrap">{renderTextWithLinks(post.content)}</p>
             <div className="flex justify-between items-center text-sm font-bold uppercase border-t-2 border-black pt-4">
-              <span>Anonim</span>
+              <span>{post.profiles?.username || 'Anonim'}</span>
               <span>{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</span>
             </div>
           </div>

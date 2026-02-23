@@ -15,7 +15,7 @@ export default function SkillBarter({ session }: { session: any }) {
   const fetchSkills = async () => {
     const { data, error } = await supabase
       .from('skills')
-      .select('*')
+      .select('*, profiles(username)')
       .order('created_at', { ascending: false });
     
     if (!error && data) {
@@ -95,7 +95,7 @@ export default function SkillBarter({ session }: { session: any }) {
             </div>
             
             <div className="flex justify-between items-center text-sm font-bold uppercase border-t-2 border-black pt-4">
-              <span>Anonim</span>
+              <span>{skill.profiles?.username || 'Anonim'}</span>
               <span>{formatDistanceToNow(new Date(skill.created_at), { addSuffix: true })}</span>
             </div>
           </div>
