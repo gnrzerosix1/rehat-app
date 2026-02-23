@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+body {
+  background-color: #ffffff;
+  color: #000000;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+/* Brutalist utilities */
+.brutal-border {
+  border: 3px solid #000000;
+}
+
+.brutal-shadow {
+  box-shadow: 6px 6px 0px #000000;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.brutal-shadow:active {
+  transform: translate(4px, 4px);
+  box-shadow: 2px 2px 0px #000000;
+}
+
+.brutal-input {
+  border: 3px solid #000000;
+  padding: 0.75rem 1rem;
+  font-family: "JetBrains Mono", monospace;
+  outline: none;
+}
+
+.brutal-input:focus {
+  background-color: #f0f0f0;
+}
+
+.brutal-btn {
+  background-color: #000000;
+  color: #ffffff;
+  border: 3px solid #000000;
+  padding: 0.75rem 1.5rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.brutal-btn:hover {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.brutal-btn-outline {
+  background-color: #ffffff;
+  color: #000000;
+  border: 3px solid #000000;
+  padding: 0.75rem 1.5rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.brutal-btn-outline:hover {
+  background-color: #000000;
+  color: #ffffff;
+}
