@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 
-export default function Feed({ session, onUserClick }: { session: any, onUserClick: (userId: string) => void }) {
+export default function Feed({ session, onUserClick, onViewAllFriends }: { session: any, onUserClick: (userId: string) => void, onViewAllFriends: () => void }) {
   const [posts, setPosts] = useState<any[]>([]);
   const [ads, setAds] = useState<any[]>([]);
+  const [friends, setFriends] = useState<any[]>([]);
   const [newPost, setNewPost] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -12,6 +13,7 @@ export default function Feed({ session, onUserClick }: { session: any, onUserCli
   useEffect(() => {
     fetchPosts();
     fetchAds();
+    fetchFriends();
   }, []);
 
   const fetchPosts = async () => {
@@ -38,6 +40,26 @@ export default function Feed({ session, onUserClick }: { session: any, onUserCli
       .limit(1);
     
     if (data) setAds(data);
+  };
+
+  const fetchFriends = async () => {
+    const { data: follows } = await supabase
+      .from('follows')
+      .select('following_id')
+      .eq('follower_id', session.user.id);
+
+    if (follows && follows.length > 0) {
+      const followingIds = follows.map((f: any) => f.following_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .in('id', followingIds)
+        .limit(5);
+      
+      if (profiles) {
+        setFriends(profiles);
+      }
+    }
   };
 
   const handlePost = async (e: React.FormEvent) => {
@@ -113,6 +135,33 @@ export default function Feed({ session, onUserClick }: { session: any, onUserCli
           )}
         </div>
       )}
+
+      {/* Widget Teman */}
+      <div className="mb-6 md:mb-8 p-4 brutal-border brutal-shadow bg-white">
+        <div className="flex justify-between items-center mb-4 border-b-2 border-black pb-2">
+          <h3 className="text-lg font-bold uppercase">Teman Lu</h3>
+          <button onClick={onViewAllFriends} className="text-xs font-bold uppercase hover:underline text-blue-600">Lihat Semua</button>
+        </div>
+        
+        {friends.length === 0 ? (
+          <p className="font-mono text-xs text-gray-500">Belum ada teman. Add orang gih.</p>
+        ) : (
+          <div className="flex flex-wrap gap-4">
+            {friends.map(friend => (
+              <div key={friend.id} className="flex flex-col items-center gap-1 cursor-pointer hover:opacity-80" onClick={() => onUserClick(friend.id)}>
+                <div className="w-10 h-10 md:w-12 md:h-12 brutal-border overflow-hidden bg-gray-200 rounded-full">
+                  {friend.avatar_url ? (
+                    <img src={friend.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center font-bold text-lg">?</div>
+                  )}
+                </div>
+                <span className="text-[10px] md:text-xs font-bold uppercase max-w-[60px] truncate text-center">{friend.username || 'Anonim'}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Tampilkan Error RLS jika ada */}
       {errorMsg && (

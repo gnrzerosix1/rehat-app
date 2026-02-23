@@ -7,11 +7,12 @@ import Profile from './components/Profile';
 import Meetup from './components/Meetup';
 import Admin from './components/Admin';
 import UserProfile from './components/UserProfile';
+import FriendsList from './components/FriendsList';
 import { LogOut, Home, Briefcase, User, Users, ShieldAlert } from 'lucide-react';
 
 export default function App() {
   const [session, setSession] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'feed' | 'barter' | 'meetup' | 'profile' | 'admin' | 'userProfile'>('feed');
+  const [activeTab, setActiveTab] = useState<'feed' | 'barter' | 'meetup' | 'profile' | 'admin' | 'userProfile' | 'friendsList'>('feed');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -110,13 +111,16 @@ export default function App() {
 
       {/* Main Content */}
       <main className="p-2 md:p-8 pb-24 md:pb-8">
-        {activeTab === 'feed' && <Feed session={session} onUserClick={handleUserClick} />}
+        {activeTab === 'feed' && <Feed session={session} onUserClick={handleUserClick} onViewAllFriends={() => setActiveTab('friendsList')} />}
         {activeTab === 'barter' && <SkillBarter session={session} onUserClick={handleUserClick} />}
         {activeTab === 'meetup' && <Meetup session={session} onUserClick={handleUserClick} />}
         {activeTab === 'profile' && <Profile session={session} />}
         {activeTab === 'admin' && <Admin session={session} />}
         {activeTab === 'userProfile' && selectedUserId && (
           <UserProfile userId={selectedUserId} session={session} onBack={() => setActiveTab('feed')} />
+        )}
+        {activeTab === 'friendsList' && (
+          <FriendsList session={session} onUserClick={handleUserClick} onBack={() => setActiveTab('feed')} />
         )}
       </main>
     </div>
