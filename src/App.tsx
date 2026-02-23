@@ -5,11 +5,12 @@ import Feed from './components/Feed';
 import SkillBarter from './components/SkillBarter';
 import Profile from './components/Profile';
 import Meetup from './components/Meetup';
-import { LogOut, Home, Briefcase, User, Users } from 'lucide-react';
+import Admin from './components/Admin';
+import { LogOut, Home, Briefcase, User, Users, ShieldAlert } from 'lucide-react';
 
 export default function App() {
   const [session, setSession] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'feed' | 'barter' | 'meetup' | 'profile'>('feed');
+  const [activeTab, setActiveTab] = useState<'feed' | 'barter' | 'meetup' | 'profile' | 'admin'>('feed');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -28,6 +29,8 @@ export default function App() {
   if (!session) {
     return <Auth />;
   }
+
+  const isAdmin = session.user.email === 'mediakindo@gmail.com';
 
   return (
     <div className="min-h-screen bg-white text-black font-sans">
@@ -74,13 +77,24 @@ export default function App() {
         </button>
         <button
           onClick={() => setActiveTab('profile')}
-          className={`flex-1 min-w-[120px] p-3 md:p-4 font-bold uppercase text-sm md:text-lg flex items-center justify-center gap-2 transition-colors ${
+          className={`flex-1 min-w-[120px] p-3 md:p-4 font-bold uppercase text-sm md:text-lg flex items-center justify-center gap-2 ${isAdmin ? 'border-r-4 border-black' : ''} transition-colors ${
             activeTab === 'profile' ? 'bg-black text-white' : 'hover:bg-gray-100'
           }`}
         >
           <User size={20} />
           <span className="hidden md:inline">Profil</span>
         </button>
+        {isAdmin && (
+          <button
+            onClick={() => setActiveTab('admin')}
+            className={`flex-1 min-w-[120px] p-3 md:p-4 font-bold uppercase text-sm md:text-lg flex items-center justify-center gap-2 transition-colors ${
+              activeTab === 'admin' ? 'bg-black text-white' : 'hover:bg-gray-100'
+            }`}
+          >
+            <ShieldAlert size={20} />
+            <span className="hidden md:inline">Admin</span>
+          </button>
+        )}
       </nav>
 
       {/* Main Content */}
@@ -89,6 +103,7 @@ export default function App() {
         {activeTab === 'barter' && <SkillBarter session={session} />}
         {activeTab === 'meetup' && <Meetup session={session} />}
         {activeTab === 'profile' && <Profile session={session} />}
+        {activeTab === 'admin' && <Admin session={session} />}
       </main>
     </div>
   );
