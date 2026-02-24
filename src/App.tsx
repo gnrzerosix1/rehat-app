@@ -8,12 +8,14 @@ import Meetup from './components/Meetup';
 import Admin from './components/Admin';
 import UserProfile from './components/UserProfile';
 import FriendsList from './components/FriendsList';
-import { LogOut, Home, Briefcase, User, Users, ShieldAlert } from 'lucide-react';
+import Notifications from './components/Notifications';
+import { LogOut, Home, Briefcase, User, Users, ShieldAlert, Bell } from 'lucide-react';
 
 export default function App() {
   const [session, setSession] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'feed' | 'barter' | 'meetup' | 'profile' | 'admin' | 'userProfile' | 'friendsList'>('feed');
+  const [activeTab, setActiveTab] = useState<'feed' | 'barter' | 'meetup' | 'profile' | 'admin' | 'userProfile' | 'friendsList' | 'notifications'>('feed');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -28,6 +30,22 @@ export default function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (session) {
+      fetchUnreadCount();
+    }
+  }, [session, activeTab]);
+
+  const fetchUnreadCount = async () => {
+    const { count } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', session.user.id)
+      .eq('is_read', false);
+    
+    setUnreadCount(count || 0);
+  };
 
   if (!session) {
     return <Auth />;
@@ -49,13 +67,26 @@ export default function App() {
       {/* Header */}
       <header className="border-b-4 border-black p-4 sticky top-0 bg-white z-20 flex justify-between items-center">
         <h1 className="text-3xl md:text-4xl font-bold uppercase tracking-tighter">REHAT.</h1>
-        <button
-          onClick={() => supabase.auth.signOut()}
-          className="flex items-center gap-2 font-bold uppercase hover:underline text-sm md:text-base"
-        >
-          <LogOut size={20} />
-          <span className="hidden sm:inline">Keluar</span>
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setActiveTab('notifications')}
+            className="relative flex items-center gap-2 font-bold uppercase hover:underline text-sm md:text-base"
+          >
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => supabase.auth.signOut()}
+            className="flex items-center gap-2 font-bold uppercase hover:underline text-sm md:text-base"
+          >
+            <LogOut size={20} />
+            <span className="hidden sm:inline">Keluar</span>
+          </button>
+        </div>
       </header>
 
       {/* Navigation - Bottom on Mobile, Top on Desktop */}
@@ -121,6 +152,9 @@ export default function App() {
         )}
         {activeTab === 'friendsList' && (
           <FriendsList session={session} onUserClick={handleUserClick} onBack={() => setActiveTab('feed')} />
+        )}
+        {activeTab === 'notifications' && (
+          <Notifications session={session} onUserClick={handleUserClick} />
         )}
       </main>
     </div>

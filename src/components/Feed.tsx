@@ -120,16 +120,26 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
     }
   };
 
-  const toggleLike = async (postId: string, isLiked: boolean) => {
+  const toggleLike = async (postId: string, postOwnerId: string, isLiked: boolean) => {
     if (isLiked) {
       await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', session.user.id);
     } else {
       await supabase.from('likes').insert([{ post_id: postId, user_id: session.user.id }]);
+      
+      // Notifikasi Like
+      if (postOwnerId !== session.user.id) {
+        await supabase.from('notifications').insert([{
+          user_id: postOwnerId,
+          actor_id: session.user.id,
+          type: 'like',
+          post_id: postId
+        }]);
+      }
     }
     fetchPosts();
   };
 
-  const handlePostComment = async (postId: string) => {
+  const handlePostComment = async (postId: string, postOwnerId: string) => {
     const text = commentText[postId];
     if (!text?.trim()) return;
 
@@ -139,6 +149,17 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
 
     if (!error) {
       setCommentText(prev => ({ ...prev, [postId]: '' }));
+      
+      // Notifikasi Comment
+      if (postOwnerId !== session.user.id) {
+        await supabase.from('notifications').insert([{
+          user_id: postOwnerId,
+          actor_id: session.user.id,
+          type: 'comment',
+          post_id: postId
+        }]);
+      }
+      
       fetchPosts();
     } else {
       alert(`Gagal komen: ${error.message}`);
@@ -278,7 +299,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
                   {/* Actions: Like & Comment */}
                   <div className="flex items-center gap-4 mt-4 pt-4 border-t-2 border-gray-200">
                     <button 
-                      onClick={() => toggleLike(post.id, isLiked)}
+                      onClick={() => toggleLike(post.id, post.user_id, isLiked)}
                       className={`flex items-center gap-1 font-bold text-sm ${isLiked ? 'text-red-600' : 'text-gray-600 hover:text-black'}`}
                     >
                       <Heart size={18} fill={isLiked ? 'currentColor' : 'none'} />
@@ -348,12 +369,12 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
-                              handlePostComment(post.id);
+                              handlePostComment(post.id, post.user_id);
                             }
                           }}
                         />
                         <button 
-                          onClick={() => handlePostComment(post.id)}
+                          onClick={() => handlePostComment(post.id, post.user_id)}
                           className="bg-black text-white px-3 brutal-border hover:bg-gray-800 flex items-center justify-center"
                         >
                           <Send size={16} />

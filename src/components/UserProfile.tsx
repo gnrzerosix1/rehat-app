@@ -76,22 +76,40 @@ export default function UserProfile({ userId, session, onBack }: { userId: strin
         { follower_id: session.user.id, following_id: userId },
         { follower_id: userId, following_id: session.user.id }
       ]);
-      if (!error) setIsFollowing(true);
+      if (!error) {
+        setIsFollowing(true);
+        // Notifikasi Follow
+        await supabase.from('notifications').insert([{
+          user_id: userId,
+          actor_id: session.user.id,
+          type: 'follow'
+        }]);
+      }
       else alert(`Gagal nambah teman: ${error.message}. Pastiin lu udah bikin table 'follows'`);
     }
     setFollowLoading(false);
   };
 
-  const toggleLike = async (postId: string, isLiked: boolean) => {
+  const toggleLike = async (postId: string, postOwnerId: string, isLiked: boolean) => {
     if (isLiked) {
       await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', session.user.id);
     } else {
       await supabase.from('likes').insert([{ post_id: postId, user_id: session.user.id }]);
+      
+      // Notifikasi Like
+      if (postOwnerId !== session.user.id) {
+        await supabase.from('notifications').insert([{
+          user_id: postOwnerId,
+          actor_id: session.user.id,
+          type: 'like',
+          post_id: postId
+        }]);
+      }
     }
     fetchUserPosts();
   };
 
-  const handlePostComment = async (postId: string) => {
+  const handlePostComment = async (postId: string, postOwnerId: string) => {
     const text = commentText[postId];
     if (!text?.trim()) return;
 
@@ -101,6 +119,17 @@ export default function UserProfile({ userId, session, onBack }: { userId: strin
 
     if (!error) {
       setCommentText(prev => ({ ...prev, [postId]: '' }));
+      
+      // Notifikasi Comment
+      if (postOwnerId !== session.user.id) {
+        await supabase.from('notifications').insert([{
+          user_id: postOwnerId,
+          actor_id: session.user.id,
+          type: 'comment',
+          post_id: postId
+        }]);
+      }
+      
       fetchUserPosts();
     } else {
       alert(`Gagal komen: ${error.message}`);
@@ -174,7 +203,7 @@ export default function UserProfile({ userId, session, onBack }: { userId: strin
                 <div className="flex justify-between items-center text-sm font-bold uppercase border-t-2 border-black pt-4 text-gray-500">
                   <div className="flex items-center gap-4">
                     <button 
-                      onClick={() => toggleLike(post.id, isLiked)}
+                      onClick={() => toggleLike(post.id, post.user_id, isLiked)}
                       className={`flex items-center gap-1 font-bold text-sm ${isLiked ? 'text-red-600' : 'text-gray-600 hover:text-black'}`}
                     >
                       <Heart size={18} fill={isLiked ? 'currentColor' : 'none'} />
@@ -233,12 +262,12 @@ export default function UserProfile({ userId, session, onBack }: { userId: strin
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
-                            handlePostComment(post.id);
+                            handlePostComment(post.id, post.user_id);
                           }
                         }}
                       />
                       <button 
-                        onClick={() => handlePostComment(post.id)}
+                        onClick={() => handlePostComment(post.id, post.user_id)}
                         className="bg-black text-white px-3 brutal-border hover:bg-gray-800 flex items-center justify-center"
                       >
                         <Send size={16} />
