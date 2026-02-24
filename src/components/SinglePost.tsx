@@ -63,14 +63,40 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
 
     if (!error) {
       setCommentText('');
+      
+      // Ambil semua user yang pernah komen di post ini
+      const { data: commentsData } = await supabase
+        .from('comments')
+        .select('user_id')
+        .eq('post_id', postId);
+        
+      const usersToNotify = new Set<string>();
+      
+      // Tambahin yang punya post
       if (post.user_id !== session.user.id) {
-        await supabase.from('notifications').insert([{
-          user_id: post.user_id,
-          actor_id: session.user.id,
-          type: 'comment',
-          post_id: postId
-        }]);
+        usersToNotify.add(post.user_id);
       }
+      
+      // Tambahin semua yang pernah komen
+      if (commentsData) {
+        commentsData.forEach(c => {
+          if (c.user_id !== session.user.id) {
+            usersToNotify.add(c.user_id);
+          }
+        });
+      }
+
+      const notificationsToInsert = Array.from(usersToNotify).map(userId => ({
+        user_id: userId,
+        actor_id: session.user.id,
+        type: 'comment',
+        post_id: postId
+      }));
+
+      if (notificationsToInsert.length > 0) {
+        await supabase.from('notifications').insert(notificationsToInsert);
+      }
+      
       fetchPost();
     } else {
       alert(`Gagal komen: ${error.message}`);
