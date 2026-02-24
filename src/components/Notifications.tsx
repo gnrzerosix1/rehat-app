@@ -49,10 +49,21 @@ export default function Notifications({ session, onUserClick, onPostClick }: { s
         ) : (
           <div className="flex flex-col gap-4">
             {notifications.map(notif => (
-              <div key={notif.id} className={`p-4 brutal-border flex items-start gap-4 ${notif.is_read ? 'bg-white' : 'bg-yellow-100'}`}>
+              <div 
+                key={notif.id} 
+                className={`p-4 brutal-border flex items-start gap-4 transition-colors ${notif.is_read ? 'bg-white' : 'bg-yellow-100'} ${notif.post_id ? 'cursor-pointer hover:bg-gray-100' : ''}`}
+                onClick={() => {
+                  if (notif.post_id) {
+                    onPostClick(notif.post_id);
+                  }
+                }}
+              >
                 <div 
-                  className="w-10 h-10 brutal-border overflow-hidden bg-gray-200 shrink-0 cursor-pointer"
-                  onClick={() => onUserClick(notif.actor_id)}
+                  className="w-10 h-10 brutal-border overflow-hidden bg-gray-200 shrink-0 cursor-pointer relative z-10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onUserClick(notif.actor_id);
+                  }}
                 >
                   {notif.actor?.avatar_url ? (
                     <img src={notif.actor.avatar_url} alt="avatar" className="w-full h-full object-cover" />
@@ -60,13 +71,10 @@ export default function Notifications({ session, onUserClick, onPostClick }: { s
                     <div className="w-full h-full flex items-center justify-center font-bold text-lg">?</div>
                   )}
                 </div>
-                <div 
-                  className={`flex-1 min-w-0 ${notif.post_id ? 'cursor-pointer hover:opacity-80' : ''}`}
-                  onClick={() => notif.post_id && onPostClick(notif.post_id)}
-                >
+                <div className="flex-1 min-w-0">
                   <p className="font-mono text-sm md:text-base">
                     <span 
-                      className="font-bold uppercase cursor-pointer hover:underline" 
+                      className="font-bold uppercase cursor-pointer hover:underline relative z-10" 
                       onClick={(e) => {
                         e.stopPropagation();
                         onUserClick(notif.actor_id);
@@ -80,13 +88,27 @@ export default function Notifications({ session, onUserClick, onPostClick }: { s
                     {notif.type === 'follow' && 'mulai ngikutin lu (nambah teman).'}
                   </p>
                   {notif.post && (
-                    <p className="text-xs text-gray-500 mt-1 truncate border-l-2 border-black pl-2 italic">
-                      "{notif.post.content}"
-                    </p>
+                    <div className="mt-2 p-3 bg-[#f0f0f0] brutal-border border-l-4 border-black">
+                      <p className="text-sm text-gray-700 italic line-clamp-2">
+                        "{notif.post.content}"
+                      </p>
+                    </div>
                   )}
                   <p className="text-[10px] text-gray-400 mt-2 font-bold uppercase">
                     {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
                   </p>
+                  
+                  {notif.post_id && (
+                    <button 
+                      className="mt-3 text-xs font-bold uppercase bg-black text-white px-3 py-1 brutal-shadow hover:bg-gray-800 relative z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPostClick(notif.post_id);
+                      }}
+                    >
+                      Lihat Postingan →
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
