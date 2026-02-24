@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 
-export default function Notifications({ session, onUserClick }: { session: any, onUserClick: (userId: string) => void }) {
+export default function Notifications({ session, onUserClick, onPostClick }: { session: any, onUserClick: (userId: string) => void, onPostClick: (postId: string) => void }) {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -60,9 +60,18 @@ export default function Notifications({ session, onUserClick }: { session: any, 
                     <div className="w-full h-full flex items-center justify-center font-bold text-lg">?</div>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div 
+                  className={`flex-1 min-w-0 ${notif.post_id ? 'cursor-pointer hover:opacity-80' : ''}`}
+                  onClick={() => notif.post_id && onPostClick(notif.post_id)}
+                >
                   <p className="font-mono text-sm md:text-base">
-                    <span className="font-bold uppercase cursor-pointer hover:underline" onClick={() => onUserClick(notif.actor_id)}>
+                    <span 
+                      className="font-bold uppercase cursor-pointer hover:underline" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onUserClick(notif.actor_id);
+                      }}
+                    >
                       {notif.actor?.username || 'Anonim'}
                     </span>
                     {' '}

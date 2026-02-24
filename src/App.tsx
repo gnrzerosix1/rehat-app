@@ -9,12 +9,14 @@ import Admin from './components/Admin';
 import UserProfile from './components/UserProfile';
 import FriendsList from './components/FriendsList';
 import Notifications from './components/Notifications';
+import SinglePost from './components/SinglePost';
 import { LogOut, Home, Briefcase, User, Users, ShieldAlert, Bell } from 'lucide-react';
 
 export default function App() {
   const [session, setSession] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'feed' | 'barter' | 'meetup' | 'profile' | 'admin' | 'userProfile' | 'friendsList' | 'notifications'>('feed');
+  const [activeTab, setActiveTab] = useState<'feed' | 'barter' | 'meetup' | 'profile' | 'admin' | 'userProfile' | 'friendsList' | 'notifications' | 'singlePost'>('feed');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -60,6 +62,11 @@ export default function App() {
       setSelectedUserId(userId);
       setActiveTab('userProfile');
     }
+  };
+
+  const handlePostClick = (postId: string) => {
+    setSelectedPostId(postId);
+    setActiveTab('singlePost');
   };
 
   return (
@@ -154,7 +161,10 @@ export default function App() {
           <FriendsList session={session} onUserClick={handleUserClick} onBack={() => setActiveTab('feed')} />
         )}
         {activeTab === 'notifications' && (
-          <Notifications session={session} onUserClick={handleUserClick} />
+          <Notifications session={session} onUserClick={handleUserClick} onPostClick={handlePostClick} />
+        )}
+        {activeTab === 'singlePost' && selectedPostId && (
+          <SinglePost postId={selectedPostId} session={session} onUserClick={handleUserClick} onBack={() => setActiveTab('notifications')} />
         )}
       </main>
     </div>
