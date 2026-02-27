@@ -85,6 +85,7 @@ export default function Notifications({ session, onUserClick, onPostClick }: { s
                     {' '}
                     {notif.type === 'like' && 'nge-like curhatan lu.'}
                     {notif.type === 'comment' && 'ngomentarin curhatan lu.'}
+                    {notif.type === 'reply' && 'ikut nimbrung/balas komentar di curhatan.'}
                     {notif.type === 'follow' && 'mulai ngikutin lu (nambah teman).'}
                   </p>
                   {notif.post && (

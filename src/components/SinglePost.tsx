@@ -64,34 +64,42 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
     if (!error) {
       setCommentText('');
       
-      // Ambil semua user yang pernah komen di post ini
+      const notificationsToInsert: any[] = [];
+
+      // Notifikasi buat yang punya post (kalau yang komen bukan yang punya post)
+      if (post.user_id !== session.user.id) {
+        notificationsToInsert.push({
+          user_id: post.user_id,
+          actor_id: session.user.id,
+          type: 'comment',
+          post_id: postId
+        });
+      }
+
+      // Ambil semua user yang pernah komen di post ini buat dikasih notif 'reply'
       const { data: commentsData } = await supabase
         .from('comments')
         .select('user_id')
         .eq('post_id', postId);
         
-      const usersToNotify = new Set<string>();
-      
-      // Tambahin yang punya post
-      if (post.user_id !== session.user.id) {
-        usersToNotify.add(post.user_id);
-      }
-      
-      // Tambahin semua yang pernah komen
       if (commentsData) {
+        const otherCommenters = new Set<string>();
         commentsData.forEach(c => {
-          if (c.user_id !== session.user.id) {
-            usersToNotify.add(c.user_id);
+          // Jangan notif diri sendiri, dan jangan double notif ke post owner
+          if (c.user_id !== session.user.id && c.user_id !== post.user_id) {
+            otherCommenters.add(c.user_id);
           }
         });
-      }
 
-      const notificationsToInsert = Array.from(usersToNotify).map(userId => ({
-        user_id: userId,
-        actor_id: session.user.id,
-        type: 'comment',
-        post_id: postId
-      }));
+        otherCommenters.forEach(userId => {
+          notificationsToInsert.push({
+            user_id: userId,
+            actor_id: session.user.id,
+            type: 'reply',
+            post_id: postId
+          });
+        });
+      }
 
       if (notificationsToInsert.length > 0) {
         await supabase.from('notifications').insert(notificationsToInsert);
@@ -207,7 +215,15 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
                           <span className="font-bold uppercase text-xs cursor-pointer hover:underline" onClick={() => onUserClick(comment.user_id)}>
                             {comment.profiles?.username || 'Anonim'}
                           </span>
-                          <span className="text-[10px] text-gray-500">{formatDistanceToNow(new Date(comment.created_at))}</span>
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => setCommentText(`@${comment.profiles?.username} `)}
+                              className="text-[10px] font-bold uppercase text-blue-600 hover:underline"
+                            >
+                              Balas
+                            </button>
+                            <span className="text-[10px] text-gray-500">{formatDistanceToNow(new Date(comment.created_at))}</span>
+                          </div>
                         </div>
                         <p className="font-mono break-words">{renderTextWithLinks(comment.content)}</p>
                       </div>

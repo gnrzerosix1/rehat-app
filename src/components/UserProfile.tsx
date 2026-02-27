@@ -120,34 +120,42 @@ export default function UserProfile({ userId, session, onBack }: { userId: strin
     if (!error) {
       setCommentText(prev => ({ ...prev, [postId]: '' }));
       
-      // Ambil semua user yang pernah komen di post ini
+      const notificationsToInsert: any[] = [];
+
+      // Notifikasi buat yang punya post (kalau yang komen bukan yang punya post)
+      if (postOwnerId !== session.user.id) {
+        notificationsToInsert.push({
+          user_id: postOwnerId,
+          actor_id: session.user.id,
+          type: 'comment',
+          post_id: postId
+        });
+      }
+
+      // Ambil semua user yang pernah komen di post ini buat dikasih notif 'reply'
       const { data: commentsData } = await supabase
         .from('comments')
         .select('user_id')
         .eq('post_id', postId);
         
-      const usersToNotify = new Set<string>();
-      
-      // Tambahin yang punya post
-      if (postOwnerId !== session.user.id) {
-        usersToNotify.add(postOwnerId);
-      }
-      
-      // Tambahin semua yang pernah komen
       if (commentsData) {
+        const otherCommenters = new Set<string>();
         commentsData.forEach(c => {
-          if (c.user_id !== session.user.id) {
-            usersToNotify.add(c.user_id);
+          // Jangan notif diri sendiri, dan jangan double notif ke post owner
+          if (c.user_id !== session.user.id && c.user_id !== postOwnerId) {
+            otherCommenters.add(c.user_id);
           }
         });
-      }
 
-      const notificationsToInsert = Array.from(usersToNotify).map(userId => ({
-        user_id: userId,
-        actor_id: session.user.id,
-        type: 'comment',
-        post_id: postId
-      }));
+        otherCommenters.forEach(userId => {
+          notificationsToInsert.push({
+            user_id: userId,
+            actor_id: session.user.id,
+            type: 'reply',
+            post_id: postId
+          });
+        });
+      }
 
       if (notificationsToInsert.length > 0) {
         await supabase.from('notifications').insert(notificationsToInsert);
@@ -265,7 +273,15 @@ export default function UserProfile({ userId, session, onBack }: { userId: strin
                                 <span className="font-bold uppercase text-xs">
                                   {comment.profiles?.username || 'Anonim'}
                                 </span>
-                                <span className="text-[10px] text-gray-500">{formatDistanceToNow(new Date(comment.created_at))}</span>
+                                <div className="flex items-center gap-2">
+                                  <button 
+                                    onClick={() => setCommentText(prev => ({ ...prev, [post.id]: `@${comment.profiles?.username} ` }))}
+                                    className="text-[10px] font-bold uppercase text-blue-600 hover:underline"
+                                  >
+                                    Balas
+                                  </button>
+                                  <span className="text-[10px] text-gray-500">{formatDistanceToNow(new Date(comment.created_at))}</span>
+                                </div>
                               </div>
                               <p className="font-mono break-words">{renderTextWithLinks(comment.content)}</p>
                             </div>
