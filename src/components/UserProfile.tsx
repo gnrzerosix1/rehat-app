@@ -231,6 +231,12 @@ export default function UserProfile({ userId, session, onBack }: { userId: strin
               <div key={post.id} className="p-6 brutal-border bg-white">
                 <p className="font-mono text-lg mb-4 whitespace-pre-wrap">{renderTextWithLinks(post.content)}</p>
                 
+                {post.image_url && (
+                  <div className="mb-4">
+                    <img src={post.image_url} alt="Post image" className="max-h-96 w-auto object-cover brutal-border" />
+                  </div>
+                )}
+                
                 <div className="flex justify-between items-center text-sm font-bold uppercase border-t-2 border-black pt-4 text-gray-500">
                   <div className="flex items-center gap-4">
                     <button 

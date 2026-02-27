@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
-import { Heart, MessageCircle, Send } from 'lucide-react';
+import { Heart, MessageCircle, Send, Image as ImageIcon, X } from 'lucide-react';
+import imageCompression from 'browser-image-compression';
+import { GoogleGenAI } from '@google/genai';
 
 export default function Feed({ session, onUserClick, onViewAllFriends }: { session: any, onUserClick: (userId: string) => void, onViewAllFriends: () => void }) {
   const [posts, setPosts] = useState<any[]>([]);
@@ -14,6 +16,13 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
   // State untuk komentar
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const [showComments, setShowComments] = useState<Record<string, boolean>>({});
+
+  // State untuk upload gambar
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isPosting, setIsPosting] = useState(false);
+  const [postStatus, setPostStatus] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchPosts();
@@ -83,23 +92,125 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
     }
   };
 
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Kompresi gambar
+    const options = {
+      maxSizeMB: 0.5,
+      maxWidthOrHeight: 1024,
+      useWebWorker: true,
+    };
+    
+    try {
+      setPostStatus('Mengompres gambar...');
+      const compressedFile = await imageCompression(file, options);
+      setImageFile(compressedFile);
+      setImagePreview(URL.createObjectURL(compressedFile));
+      setPostStatus('');
+    } catch (error) {
+      console.error("Error compressing image:", error);
+      alert("Gagal memproses gambar.");
+      setPostStatus('');
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handlePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPost.trim()) return;
+    if (!newPost.trim() && !imageFile) return;
 
-    setLoading(true);
+    setIsPosting(true);
     setErrorMsg('');
+    let finalImageUrl = null;
+
+    if (imageFile) {
+      setPostStatus('Satpam AI sedang mengecek gambar...');
+      try {
+        // Convert to base64
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(imageFile);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = error => reject(error);
+        });
+        
+        const base64String = base64Data.split(',')[1];
+        const mimeType = imageFile.type;
+
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const response = await ai.models.generateContent({
+          model: "gemini-3-flash-preview",
+          contents: {
+            parts: [
+              {
+                inlineData: {
+                  mimeType: mimeType,
+                  data: base64String
+                }
+              },
+              {
+                text: "Analyze this image. Does it contain pornography, nudity, extreme violence, gore, or animal cruelty? Answer ONLY with 'YES' or 'NO'."
+              }
+            ]
+          }
+        });
+
+        const aiAnswer = response.text?.trim().toUpperCase() || "YES";
+        
+        if (aiAnswer.includes("YES")) {
+          setIsPosting(false);
+          setPostStatus('');
+          setErrorMsg("Upload dibatalkan! Satpam AI mendeteksi konten yang tidak pantas (porno/kekerasan).");
+          return;
+        }
+
+        setPostStatus('Mengunggah gambar ke server...');
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${session.user.id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('post-images')
+          .upload(filePath, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from('post-images')
+          .getPublicUrl(filePath);
+
+        finalImageUrl = publicUrlData.publicUrl;
+
+      } catch (err: any) {
+        console.error("AI/Upload Error:", err);
+        setIsPosting(false);
+        setPostStatus('');
+        setErrorMsg("Sistem keamanan sedang sibuk atau gagal mengunggah gambar. Coba lagi nanti.");
+        return;
+      }
+    }
+
+    setPostStatus('Memposting curhatan...');
     const { error } = await supabase.from('posts').insert([
-      { content: newPost, user_id: session.user.id }
+      { content: newPost, user_id: session.user.id, image_url: finalImageUrl }
     ]);
 
     if (error) {
       setErrorMsg(`Gagal posting: ${error.message}.`);
     } else {
       setNewPost('');
+      removeImage();
       fetchPosts();
     }
-    setLoading(false);
+    setIsPosting(false);
+    setPostStatus('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -277,14 +388,51 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
             value={newPost}
             onChange={(e) => setNewPost(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={loading}
+            disabled={isPosting}
           />
-          <button
-            className="self-end brutal-btn brutal-shadow w-full md:w-auto"
-            disabled={loading}
-          >
-            {loading ? 'Melempar...' : 'Lempar!'}
-          </button>
+          
+          {imagePreview && (
+            <div className="relative w-max">
+              <img src={imagePreview} alt="Preview" className="max-h-48 object-cover brutal-border" />
+              <button 
+                type="button" 
+                onClick={removeImage} 
+                className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 brutal-shadow hover:bg-red-700"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                ref={fileInputRef} 
+                onChange={handleImageSelect}
+                disabled={isPosting}
+              />
+              <button 
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="brutal-btn-outline flex items-center gap-2 px-3 py-2 text-sm"
+                disabled={isPosting}
+              >
+                <ImageIcon size={18} />
+                <span className="hidden md:inline">Tambah Gambar</span>
+              </button>
+              {postStatus && <span className="text-xs font-bold uppercase text-blue-600 animate-pulse">{postStatus}</span>}
+            </div>
+            
+            <button
+              className="brutal-btn brutal-shadow w-full md:w-auto"
+              disabled={isPosting}
+            >
+              {isPosting ? 'Melempar...' : 'Lempar!'}
+            </button>
+          </div>
         </form>
       </div>
 
@@ -326,6 +474,12 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
                     <span className="text-gray-500 whitespace-nowrap">{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</span>
                   </div>
                   <p className="font-mono text-sm md:text-lg whitespace-pre-wrap break-words">{renderTextWithLinks(post.content)}</p>
+                  
+                  {post.image_url && (
+                    <div className="mt-4">
+                      <img src={post.image_url} alt="Post image" className="max-h-96 w-auto object-cover brutal-border" />
+                    </div>
+                  )}
                   
                   {/* Actions: Like & Comment */}
                   <div className="flex items-center gap-4 mt-4 pt-4 border-t-2 border-gray-200">
