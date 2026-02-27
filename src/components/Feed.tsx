@@ -192,7 +192,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
         console.error("AI/Upload Error:", err);
         setIsPosting(false);
         setPostStatus('');
-        setErrorMsg("Sistem keamanan sedang sibuk atau gagal mengunggah gambar. Coba lagi nanti.");
+        setErrorMsg(`Gagal: ${err.message || JSON.stringify(err)}. (Kalau tulisannya 'new row violates row-level security policy', berarti lu belum ngasih izin upload di Supabase Storage)`);
         return;
       }
     }
