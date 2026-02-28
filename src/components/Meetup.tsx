@@ -8,19 +8,38 @@ export default function Meetup({ session, onUserClick }: { session: any, onUserC
   const [location, setLocation] = useState('');
   const [time, setTime] = useState('');
   const [loading, setLoading] = useState(false);
+  const [userCity, setUserCity] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchMeetups();
+    fetchUserCityAndMeetups();
   }, []);
 
-  const fetchMeetups = async () => {
+  const fetchUserCityAndMeetups = async () => {
+    // 1. Ambil kota user saat ini
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('city')
+      .eq('id', session.user.id)
+      .single();
+
+    const city = profile?.city || null;
+    setUserCity(city);
+
+    // 2. Ambil meetups, join dengan profile pembuatnya
     const { data, error } = await supabase
       .from('meetups')
-      .select('*, profiles(username)')
+      .select('*, profiles!inner(username, city)')
       .order('created_at', { ascending: false });
     
     if (!error && data) {
-      setMeetups(data);
+      // 3. Filter meetups: hanya tampilkan jika kota pembuat sama dengan kota user
+      // Jika user belum set kota, tampilkan semua (atau bisa juga dikosongkan, tapi lebih baik tampilkan semua dengan peringatan)
+      if (city) {
+        const filtered = data.filter((m: any) => m.profiles?.city?.toLowerCase() === city.toLowerCase());
+        setMeetups(filtered);
+      } else {
+        setMeetups(data);
+      }
     }
   };
 
@@ -37,7 +56,7 @@ export default function Meetup({ session, onUserClick }: { session: any, onUserC
       setTitle('');
       setLocation('');
       setTime('');
-      fetchMeetups();
+      fetchUserCityAndMeetups();
     }
     setLoading(false);
   };
@@ -49,7 +68,7 @@ export default function Meetup({ session, onUserClick }: { session: any, onUserC
     if (error) {
       alert(`Gagal hapus: ${error.message}`);
     } else {
-      fetchMeetups();
+      fetchUserCityAndMeetups();
     }
   };
 

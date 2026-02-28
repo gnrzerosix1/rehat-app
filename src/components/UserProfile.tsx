@@ -201,6 +201,9 @@ export default function UserProfile({ userId, session, onBack }: { userId: strin
           </div>
           <div className="flex-1">
             <h2 className="text-4xl font-bold uppercase">{profile.username || 'Anonim'}</h2>
+            {profile.city && (
+              <p className="font-bold text-sm uppercase mt-2 bg-yellow-300 inline-block px-2 py-1 brutal-border">📍 {profile.city}</p>
+            )}
             <p className="font-mono text-gray-600 mt-4 bg-[#f0f0f0] p-4 brutal-border">{profile.bio || 'Orang ini belum nulis bio apa-apa.'}</p>
           </div>
         </div>

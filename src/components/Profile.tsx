@@ -5,6 +5,7 @@ export default function Profile({ session }: { session: any }) {
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
+  const [city, setCity] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -20,7 +21,7 @@ export default function Profile({ session }: { session: any }) {
 
       const { data, error, status } = await supabase
         .from('profiles')
-        .select(`username, bio, avatar_url`)
+        .select(`username, bio, avatar_url, city`)
         .eq('id', user.id)
         .single();
 
@@ -31,6 +32,7 @@ export default function Profile({ session }: { session: any }) {
       if (data) {
         setUsername(data.username || '');
         setBio(data.bio || '');
+        setCity(data.city || '');
         setAvatarUrl(data.avatar_url || '');
       }
     } catch (error: any) {
@@ -51,6 +53,7 @@ export default function Profile({ session }: { session: any }) {
         id: user.id,
         username,
         bio,
+        city,
         avatar_url: avatarUrl,
         updated_at: new Date(),
       };
@@ -157,6 +160,18 @@ export default function Profile({ session }: { session: any }) {
               value={bio}
               onChange={(e) => setBio(e.target.value)}
             />
+          </div>
+
+          <div>
+            <label className="block font-bold mb-2 uppercase">Lokasi Kota</label>
+            <input
+              type="text"
+              className="w-full brutal-input"
+              placeholder="Misal: Semarang, Jakarta Selatan, dll"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+            />
+            <p className="text-xs text-gray-500 mt-1 font-mono">Biar gampang nyari temen nongkrong di kota yang sama.</p>
           </div>
 
           <button
