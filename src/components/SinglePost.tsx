@@ -170,12 +170,6 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
             </div>
             <p className="font-mono text-sm md:text-lg whitespace-pre-wrap break-words">{renderTextWithLinks(post.content)}</p>
             
-            {post.image_url && (
-              <div className="mt-4">
-                <img src={post.image_url} alt="Post image" className="max-h-96 w-auto object-cover brutal-border" />
-              </div>
-            )}
-            
             <div className="flex items-center gap-4 mt-4 pt-4 border-t-2 border-gray-200">
               <button 
                 onClick={() => toggleLike(isLiked)}
