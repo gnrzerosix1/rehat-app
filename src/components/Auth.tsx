@@ -31,7 +31,7 @@ export default function Auth() {
       <div className="w-full max-w-md brutal-border brutal-shadow p-8 bg-white">
         <h1 className="text-5xl font-bold mb-2 uppercase tracking-tighter">REHAT.</h1>
         <p className="text-lg font-mono mb-8 border-b-2 border-black pb-4">
-          Antitesis LinkedIn. Tempat jujur soal nasib tanpa jaim profesional.
+          Tempat curhat lu yang lagi nganggur. Ruang aman buat ngobrol santai tanpa pusing lihat orang pamer kesuksesan.
         </p>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
