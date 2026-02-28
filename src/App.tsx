@@ -73,7 +73,18 @@ export default function App() {
     <div className="min-h-screen bg-white text-black font-sans">
       {/* Header */}
       <header className="border-b-4 border-black p-4 sticky top-0 bg-white z-20 flex justify-between items-center">
-        <h1 className="text-3xl md:text-4xl font-bold uppercase tracking-tighter">REHAT.</h1>
+        <div 
+          className="flex items-center gap-2 md:gap-3 cursor-pointer" 
+          onClick={() => setActiveTab('feed')}
+        >
+          <div className="bg-black text-white w-10 h-10 md:w-12 md:h-12 flex items-center justify-center font-black text-2xl md:text-3xl border-2 border-black brutal-shadow-sm">
+            R
+          </div>
+          <div className="flex flex-col justify-center">
+            <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter leading-none">REHAT.</h1>
+            <p className="text-[10px] md:text-xs font-mono font-bold uppercase tracking-widest mt-1">Teman Nganggur Lu</p>
+          </div>
+        </div>
         <div className="flex items-center gap-4">
           <button
             onClick={() => setActiveTab('notifications')}

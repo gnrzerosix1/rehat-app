@@ -22,6 +22,11 @@ body {
   transition: transform 0.1s, box-shadow 0.1s;
 }
 
+.brutal-shadow-sm {
+  box-shadow: 3px 3px 0px #000000;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
 .brutal-shadow:active {
   transform: translate(4px, 4px);
   box-shadow: 2px 2px 0px #000000;
