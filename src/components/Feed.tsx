@@ -53,14 +53,18 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
   };
 
   const fetchAds = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('ads')
       .select('*')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(1);
     
-    if (data) setAds(data);
+    if (error) {
+      console.error("Error fetch ads:", error);
+    } else if (data) {
+      setAds(data);
+    }
   };
 
   const fetchFriends = async () => {

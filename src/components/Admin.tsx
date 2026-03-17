@@ -28,11 +28,16 @@ export default function Admin({ session }: { session: any }) {
   };
 
   const fetchAds = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('ads')
       .select('*')
       .order('created_at', { ascending: false });
-    if (data) setAds(data);
+    
+    if (error) {
+      console.error("Error fetch ads admin:", error);
+    } else if (data) {
+      setAds(data);
+    }
   };
 
   const handlePostAd = async (e: React.FormEvent) => {
@@ -122,23 +127,30 @@ export default function Admin({ session }: { session: any }) {
       </div>
 
       {/* Daftar Iklan Aktif */}
-      <div className="p-6 brutal-border bg-white">
-        <h3 className="text-xl font-bold uppercase mb-4 border-b-2 border-black pb-2">Iklan yang Sedang Tayang</h3>
+      <div className="p-6 brutal-border brutal-shadow bg-yellow-100 mt-8">
+        <h3 className="text-2xl font-black uppercase mb-2 border-b-4 border-black pb-2">Daftar Iklan Aktif (Bisa Dihapus)</h3>
+        <p className="font-mono text-sm mb-6 text-gray-700">
+          *Kalau iklan lu udah masuk ke sini tapi nggak muncul di Beranda, itu berarti lu belum matiin RLS (Row Level Security) di Supabase. Cek chat AI buat cara matiinnya.
+        </p>
+        
         <div className="space-y-4">
           {ads.length === 0 ? (
-            <p className="font-mono text-gray-500">Belum ada iklan.</p>
+            <div className="p-4 border-2 border-dashed border-black text-center">
+              <p className="font-mono font-bold text-gray-500">Belum ada iklan yang tayang.</p>
+            </div>
           ) : (
             ads.map(ad => (
-              <div key={ad.id} className="p-4 border-2 border-black flex justify-between items-center">
+              <div key={ad.id} className="p-4 border-2 border-black bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <p className="font-bold">{ad.content}</p>
-                  {ad.link && <a href={ad.link} target="_blank" rel="noreferrer" className="text-blue-600 text-sm underline">{ad.link}</a>}
+                  <span className="bg-black text-white text-xs font-bold px-2 py-1 uppercase mr-2 mb-2 inline-block">Sponsor</span>
+                  <p className="font-bold text-lg">{ad.content}</p>
+                  {ad.link && <a href={ad.link} target="_blank" rel="noreferrer" className="text-blue-600 text-sm underline font-mono mt-1 block">{ad.link}</a>}
                 </div>
                 <button 
                   onClick={() => handleDeleteAd(ad.id)}
-                  className="bg-red-500 text-white px-3 py-1 font-bold uppercase border-2 border-black hover:bg-red-600"
+                  className="bg-red-500 text-white px-4 py-2 font-black uppercase border-2 border-black hover:bg-red-600 brutal-shadow-sm whitespace-nowrap"
                 >
-                  Hapus
+                  Hapus Iklan
                 </button>
               </div>
             ))
