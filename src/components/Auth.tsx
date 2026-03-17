@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-export default function Auth() {
+export default function Auth({ onCustomLogin }: { onCustomLogin?: (session: any) => void }) {
   const [loading, setLoading] = useState(false);
   const [authMode, setAuthMode] = useState<'username' | 'email'>('username');
   const [isLogin, setIsLogin] = useState(true);
@@ -15,6 +15,14 @@ export default function Auth() {
   
   const [message, setMessage] = useState('');
 
+  // Fungsi buat bikin UUID acak (karena kita gak pake Supabase Auth lagi buat bot)
+  const generateUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
   const handleUsernameAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) return;
@@ -22,54 +30,60 @@ export default function Auth() {
     setLoading(true);
     setMessage('');
 
-    // Bikin email palsu di belakang layar biar Supabase seneng
     const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
-    // Tambahin random string biar unik dan gak kena rate limit email yang sama
-    const randomStr = Math.random().toString(36).substring(2, 8);
-    const fakeEmail = isLogin ? `${cleanUsername}@rehat.app` : `${cleanUsername}_${randomStr}@rehat.app`;
 
     if (isLogin) {
-      // Pas login, kita harus cari email aslinya dulu dari username
-      const { data: profile } = await supabase
+      // LOGIN JALUR BELAKANG (Bypass Supabase Auth)
+      const { data: profile, error } = await supabase
         .from('profiles')
-        .select('id')
-        .eq('username', username.trim())
+        .select('*')
+        .eq('username', cleanUsername)
+        .eq('password', password)
         .single();
         
-      if (!profile) {
-        setMessage('Username gak ketemu bos!');
+      if (error || !profile) {
+        setMessage('Gagal masuk: Username atau password salah bos!');
+      } else {
+        // Bikin sesi palsu
+        const customSession = {
+          user: {
+            id: profile.id,
+            email: `${cleanUsername}@rehat.app`,
+            user_metadata: { username: profile.username }
+          }
+        };
+        localStorage.setItem('rehat_custom_session', JSON.stringify(customSession));
+        if (onCustomLogin) onCustomLogin(customSession);
+      }
+    } else {
+      // DAFTAR JALUR BELAKANG (Bypass Supabase Auth)
+      // Cek dulu username udah ada belum
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', cleanUsername)
+        .single();
+
+      if (existingUser) {
+        setMessage('Gagal daftar: Username udah dipake orang lain!');
         setLoading(false);
         return;
       }
+
+      const newId = generateUUID();
       
-      // Karena kita gak simpan email di profile, kita coba login pake format standar dulu
-      // Kalau gagal, berarti dia daftar pake format baru yang ada random stringnya
-      // Solusi terbaik: kita simpan email palsunya di localstorage pas daftar
-      const savedEmail = localStorage.getItem(`rehat_email_${username.trim()}`);
-      const emailToUse = savedEmail || `${cleanUsername}@rehat.app`;
-
-      const { error } = await supabase.auth.signInWithPassword({
-        email: emailToUse,
-        password,
-      });
+      const { error } = await supabase.from('profiles').insert([
+        { 
+          id: newId, 
+          username: cleanUsername, 
+          password: password,
+          avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanUsername}`
+        }
+      ]);
 
       if (error) {
-        setMessage(`Gagal masuk: ${error.message}`);
-      }
-    } else {
-      const { data, error } = await supabase.auth.signUp({
-        email: fakeEmail,
-        password,
-      });
-
-      if (error) {
-        setMessage(`Gagal daftar: ${error.message}`);
-      } else if (data.user) {
-        // Simpan email palsu di localstorage buat login nanti
-        localStorage.setItem(`rehat_email_${username.trim()}`, fakeEmail);
-        
-        // Otomatis update username di profil
-        await supabase.from('profiles').update({ username: username.trim() }).eq('id', data.user.id);
+        setMessage(`Gagal daftar: ${error.message}. (Pastiin lu udah jalanin SQL dari AI)`);
+      } else {
         setMessage('Berhasil daftar! Silakan masuk.');
         setIsLogin(true);
       }

@@ -20,14 +20,28 @@ export default function App() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
+    // Cek local session dulu (buat akun bot)
+    const localSessionStr = localStorage.getItem('rehat_custom_session');
+    if (localSessionStr) {
+      try {
+        const localSession = JSON.parse(localSessionStr);
+        setSession(localSession);
+      } catch (e) {
+        console.error(e);
+      }
+    } else {
+      // Kalau gak ada, baru cek Supabase Auth (buat Admin)
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setSession(session);
+      });
+    }
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+      if (!localStorage.getItem('rehat_custom_session')) {
+        setSession(session);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -49,8 +63,14 @@ export default function App() {
     setUnreadCount(count || 0);
   };
 
+  const handleLogout = async () => {
+    localStorage.removeItem('rehat_custom_session');
+    await supabase.auth.signOut();
+    setSession(null);
+  };
+
   if (!session) {
-    return <Auth />;
+    return <Auth onCustomLogin={(sess) => setSession(sess)} />;
   }
 
   const isAdmin = session.user.email === 'mediakindo@gmail.com';
@@ -98,7 +118,7 @@ export default function App() {
             )}
           </button>
           <button
-            onClick={() => supabase.auth.signOut()}
+            onClick={handleLogout}
             className="flex items-center gap-2 font-bold uppercase hover:underline text-sm md:text-base"
           >
             <LogOut size={20} />
