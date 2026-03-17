@@ -135,7 +135,7 @@ export default function Auth() {
                   onClick={() => { setAuthMode('email'); setMessage(''); }}
                   className="text-gray-500 hover:text-black font-bold text-xs uppercase"
                 >
-                  Masuk pake Email Asli (Khusus Admin) &rarr;
+                  Login Alternatif (Pake Email) &rarr;
                 </button>
               </div>
             </div>
