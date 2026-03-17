@@ -24,11 +24,32 @@ export default function Auth() {
 
     // Bikin email palsu di belakang layar biar Supabase seneng
     const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
-    const fakeEmail = `${cleanUsername}@rehat.app`;
+    // Tambahin random string biar unik dan gak kena rate limit email yang sama
+    const randomStr = Math.random().toString(36).substring(2, 8);
+    const fakeEmail = isLogin ? `${cleanUsername}@rehat.app` : `${cleanUsername}_${randomStr}@rehat.app`;
 
     if (isLogin) {
+      // Pas login, kita harus cari email aslinya dulu dari username
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username.trim())
+        .single();
+        
+      if (!profile) {
+        setMessage('Username gak ketemu bos!');
+        setLoading(false);
+        return;
+      }
+      
+      // Karena kita gak simpan email di profile, kita coba login pake format standar dulu
+      // Kalau gagal, berarti dia daftar pake format baru yang ada random stringnya
+      // Solusi terbaik: kita simpan email palsunya di localstorage pas daftar
+      const savedEmail = localStorage.getItem(`rehat_email_${username.trim()}`);
+      const emailToUse = savedEmail || `${cleanUsername}@rehat.app`;
+
       const { error } = await supabase.auth.signInWithPassword({
-        email: fakeEmail,
+        email: emailToUse,
         password,
       });
 
@@ -44,6 +65,9 @@ export default function Auth() {
       if (error) {
         setMessage(`Gagal daftar: ${error.message}`);
       } else if (data.user) {
+        // Simpan email palsu di localstorage buat login nanti
+        localStorage.setItem(`rehat_email_${username.trim()}`, fakeEmail);
+        
         // Otomatis update username di profil
         await supabase.from('profiles').update({ username: username.trim() }).eq('id', data.user.id);
         setMessage('Berhasil daftar! Silakan masuk.');

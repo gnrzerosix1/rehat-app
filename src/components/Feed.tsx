@@ -60,6 +60,8 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
       .order('created_at', { ascending: false })
       .limit(1);
     
+    console.log("Fetch Ads Result:", { data, error });
+    
     if (error) {
       console.error("Error fetch ads:", error);
     } else if (data) {
