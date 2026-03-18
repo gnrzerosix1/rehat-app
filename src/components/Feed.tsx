@@ -37,7 +37,8 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
           profiles(username, avatar_url)
         )
       `)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(30);
     
     if (error) {
       console.error(error);

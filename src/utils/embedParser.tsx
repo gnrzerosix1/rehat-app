@@ -21,6 +21,7 @@ export const renderContentWithEmbeds = (content: string, textClassName: string =
               title="YouTube video player"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
+              loading="lazy"
             ></iframe>
           </div>
         );
@@ -38,6 +39,7 @@ export const renderContentWithEmbeds = (content: string, textClassName: string =
               frameBorder="0"
               allowFullScreen={true}
               allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+              loading="lazy"
             ></iframe>
           </div>
         );
@@ -70,6 +72,7 @@ export const renderContentWithEmbeds = (content: string, textClassName: string =
               allowFullScreen
               scrolling="no"
               allow="encrypted-media;"
+              loading="lazy"
             ></iframe>
           </div>
         );
