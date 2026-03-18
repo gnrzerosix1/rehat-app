@@ -43,6 +43,22 @@ export const renderContentWithEmbeds = (content: string, textClassName: string =
         );
       }
 
+      // Check if Image
+      const imgMatch = part.match(/\.(jpeg|jpg|gif|png|webp)(?:\?.*)?$/i);
+      if (imgMatch) {
+        embeds.push(
+          <div key={`img-${i}`} className="mt-4 w-full">
+            <img
+              src={part}
+              alt="Embedded content"
+              className="w-full h-auto border-2 border-black brutal-shadow-sm object-cover"
+              referrerPolicy="no-referrer"
+              loading="lazy"
+            />
+          </div>
+        );
+      }
+
       return (
         <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:bg-black hover:text-white transition-colors break-all">
           {part}

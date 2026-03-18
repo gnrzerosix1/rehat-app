@@ -228,16 +228,18 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
     <div className="max-w-2xl mx-auto p-2 md:p-4">
       {/* Tampilkan Iklan jika ada */}
       {ads.length > 0 && (
-        <div className="mb-6 md:mb-8 p-4 brutal-border bg-yellow-300 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
-          <div>
-            <span className="bg-black text-white text-xs font-bold px-2 py-1 uppercase mr-2">Sponsor</span>
-            <span className="font-bold text-sm md:text-base">{ads[0].content}</span>
+        <div className="mb-6 md:mb-8 p-4 brutal-border bg-yellow-300 flex flex-col gap-3">
+          <div className="flex justify-between items-center">
+            <span className="bg-black text-white text-xs font-bold px-2 py-1 uppercase">Sponsor</span>
+            {ads[0].link && (
+              <a href={ads[0].link} target="_blank" rel="noreferrer" className="brutal-btn-outline text-xs px-3 py-1 bg-white whitespace-nowrap">
+                Cekidot
+              </a>
+            )}
           </div>
-          {ads[0].link && (
-            <a href={ads[0].link} target="_blank" rel="noreferrer" className="brutal-btn-outline text-xs px-3 py-1 bg-white whitespace-nowrap">
-              Cekidot
-            </a>
-          )}
+          <div className="w-full">
+            {renderContentWithEmbeds(ads[0].content, "font-bold text-sm md:text-base")}
+          </div>
         </div>
       )}
 

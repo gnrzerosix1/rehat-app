@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { renderContentWithEmbeds } from '../utils/embedParser';
 
 export default function Admin({ session }: { session: any }) {
   const [userCount, setUserCount] = useState(0);
@@ -63,8 +64,15 @@ export default function Admin({ session }: { session: any }) {
   };
 
   const handleDeleteAd = async (id: string) => {
-    await supabase.from('ads').delete().eq('id', id);
-    fetchAds();
+    if (!window.confirm('Yakin mau hapus iklan ini?')) return;
+    
+    const { error } = await supabase.from('ads').delete().eq('id', id);
+    if (error) {
+      alert(`Gagal hapus iklan: ${error.message}`);
+      console.error("Delete ad error:", error);
+    } else {
+      fetchAds();
+    }
   };
 
   if (!isAdmin) {
@@ -141,14 +149,16 @@ export default function Admin({ session }: { session: any }) {
           ) : (
             ads.map(ad => (
               <div key={ad.id} className="p-4 border-2 border-black bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
+                <div className="w-full">
                   <span className="bg-black text-white text-xs font-bold px-2 py-1 uppercase mr-2 mb-2 inline-block">Sponsor</span>
-                  <p className="font-bold text-lg">{ad.content}</p>
+                  <div className="mb-2">
+                    {renderContentWithEmbeds(ad.content, "font-bold text-lg")}
+                  </div>
                   {ad.link && <a href={ad.link} target="_blank" rel="noreferrer" className="text-blue-600 text-sm underline font-mono mt-1 block">{ad.link}</a>}
                 </div>
                 <button 
                   onClick={() => handleDeleteAd(ad.id)}
-                  className="bg-red-500 text-white px-4 py-2 font-black uppercase border-2 border-black hover:bg-red-600 brutal-shadow-sm whitespace-nowrap"
+                  className="bg-red-500 text-white px-4 py-2 font-black uppercase border-2 border-black hover:bg-red-600 brutal-shadow-sm whitespace-nowrap shrink-0"
                 >
                   Hapus Iklan
                 </button>
