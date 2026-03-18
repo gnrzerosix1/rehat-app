@@ -30,7 +30,7 @@ export default function Admin({ session }: { session: any }) {
 
   const fetchAds = async () => {
     const { data, error } = await supabase
-      .from('ads')
+      .from('sponsors')
       .select('*')
       .order('created_at', { ascending: false });
     
@@ -48,7 +48,7 @@ export default function Admin({ session }: { session: any }) {
     setLoading(true);
     setMessage('');
     
-    const { error } = await supabase.from('ads').insert([
+    const { error } = await supabase.from('sponsors').insert([
       { content: adContent, link: adLink, is_active: true }
     ]);
 
@@ -66,7 +66,7 @@ export default function Admin({ session }: { session: any }) {
   const handleDeleteAd = async (id: string) => {
     if (!window.confirm('Yakin mau hapus iklan ini?')) return;
     
-    const { error } = await supabase.from('ads').delete().eq('id', id);
+    const { error } = await supabase.from('sponsors').delete().eq('id', id);
     if (error) {
       alert(`Gagal hapus iklan: ${error.message}`);
       console.error("Delete ad error:", error);

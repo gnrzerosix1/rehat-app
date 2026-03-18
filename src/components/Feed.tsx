@@ -55,7 +55,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
 
   const fetchAds = async () => {
     const { data, error } = await supabase
-      .from('ads')
+      .from('sponsors')
       .select('*')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
