@@ -59,6 +59,22 @@ export const renderContentWithEmbeds = (content: string, textClassName: string =
         );
       }
 
+      // Check if TikTok
+      const tiktokMatch = part.match(/tiktok\.com\/@[a-zA-Z0-9_.-]+\/video\/(\d+)/i);
+      if (tiktokMatch && tiktokMatch[1]) {
+        embeds.push(
+          <div key={`tiktok-${i}`} className="mt-4 w-full flex justify-center bg-black border-2 border-black brutal-shadow-sm overflow-hidden rounded-md">
+            <iframe
+              src={`https://www.tiktok.com/embed/v2/${tiktokMatch[1]}`}
+              className="w-full max-w-[325px] h-[600px] border-none"
+              allowFullScreen
+              scrolling="no"
+              allow="encrypted-media;"
+            ></iframe>
+          </div>
+        );
+      }
+
       return (
         <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:bg-black hover:text-white transition-colors break-all">
           {part}
