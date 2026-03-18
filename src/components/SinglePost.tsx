@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 import { Heart, MessageCircle, Send } from 'lucide-react';
+import { renderContentWithEmbeds } from '../utils/embedParser';
 
 export default function SinglePost({ postId, session, onUserClick, onBack }: { postId: string, session: any, onUserClick: (userId: string) => void, onBack: () => void }) {
   const [post, setPost] = useState<any>(null);
@@ -168,7 +169,7 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
               </span>
               <span className="text-gray-500 whitespace-nowrap">{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</span>
             </div>
-            <p className="font-mono text-sm md:text-lg whitespace-pre-wrap break-words">{renderTextWithLinks(post.content)}</p>
+            {renderContentWithEmbeds(post.content, "font-mono text-sm md:text-lg whitespace-pre-wrap break-words")}
             
             <div className="flex items-center gap-4 mt-4 pt-4 border-t-2 border-gray-200">
               <button 
@@ -225,7 +226,7 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
                             <span className="text-[10px] text-gray-500">{formatDistanceToNow(new Date(comment.created_at))}</span>
                           </div>
                         </div>
-                        <p className="font-mono break-words">{renderTextWithLinks(comment.content)}</p>
+                        {renderContentWithEmbeds(comment.content, "font-mono break-words")}
                       </div>
                     </div>
                   ))
