@@ -15,6 +15,9 @@ export default function Auth({ onCustomLogin }: { onCustomLogin?: (session: any)
   
   const [message, setMessage] = useState('');
   const [welcomeText, setWelcomeText] = useState('Tempat curhat lu yang lagi nganggur. Ruang aman buat ngobrol santai tanpa pusing lihat orang pamer kesuksesan.');
+  
+  const [acceptedTos, setAcceptedTos] = useState(false);
+  const [showTosModal, setShowTosModal] = useState(false);
 
   useEffect(() => {
     const fetchWelcomeText = async () => {
@@ -165,11 +168,24 @@ export default function Auth({ onCustomLogin }: { onCustomLogin?: (session: any)
                   required
                 />
               </div>
+
+              <div className="flex items-start gap-2 mt-2">
+                <input 
+                  type="checkbox" 
+                  id="tos_username" 
+                  className="mt-1 w-4 h-4 accent-black cursor-pointer"
+                  checked={acceptedTos}
+                  onChange={(e) => setAcceptedTos(e.target.checked)}
+                />
+                <label htmlFor="tos_username" className="text-xs font-mono text-gray-700 cursor-pointer">
+                  Gue setuju sama <button type="button" onClick={() => setShowTosModal(true)} className="text-blue-600 underline font-bold hover:text-black">Aturan Main Rehat</button>.
+                </label>
+              </div>
               
               <button
                 type="submit"
-                className="w-full brutal-btn brutal-shadow mt-4"
-                disabled={loading}
+                className={`w-full brutal-btn brutal-shadow mt-4 ${!acceptedTos ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={loading || !acceptedTos}
               >
                 {loading ? 'Nungguin...' : (isLogin ? 'Masuk' : 'Daftar Akun Baru')}
               </button>
@@ -209,10 +225,24 @@ export default function Auth({ onCustomLogin }: { onCustomLogin?: (session: any)
                   required
                 />
               </div>
+
+              <div className="flex items-start gap-2 mt-2">
+                <input 
+                  type="checkbox" 
+                  id="tos_email" 
+                  className="mt-1 w-4 h-4 accent-black cursor-pointer"
+                  checked={acceptedTos}
+                  onChange={(e) => setAcceptedTos(e.target.checked)}
+                />
+                <label htmlFor="tos_email" className="text-xs font-mono text-gray-700 cursor-pointer">
+                  Gue setuju sama <button type="button" onClick={() => setShowTosModal(true)} className="text-blue-600 underline font-bold hover:text-black">Aturan Main Rehat</button>.
+                </label>
+              </div>
+
               <button
                 type="submit"
-                className="w-full brutal-btn brutal-shadow mt-4"
-                disabled={loading}
+                className={`w-full brutal-btn brutal-shadow mt-4 ${!acceptedTos ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={loading || !acceptedTos}
               >
                 {loading ? 'Nungguin...' : 'Kirim Magic Link'}
               </button>
@@ -235,6 +265,50 @@ export default function Auth({ onCustomLogin }: { onCustomLogin?: (session: any)
           </div>
         )}
       </div>
+
+      {/* Modal Aturan Main (ToS) */}
+      {showTosModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-white brutal-border brutal-shadow max-w-lg w-full max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b-4 border-black flex justify-between items-center bg-yellow-300">
+              <h2 className="text-2xl font-black uppercase">Aturan Main Rehat</h2>
+              <button 
+                onClick={() => setShowTosModal(false)}
+                className="font-bold text-xl hover:text-red-600"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto font-mono text-sm space-y-4">
+              <p className="font-bold">Selamat datang di Rehat. Sebelum lu lanjut, baca dulu aturan mainnya biar kita sama-sama enak:</p>
+              
+              <ol className="list-decimal list-inside space-y-2">
+                <li><strong className="text-red-600">Dilarang Keras Posting Bokep/Pornografi:</strong> Gambar, teks, atau link yang berbau pornografi bakal langsung dihapus dan akun lu dibanned permanen.</li>
+                <li><strong className="text-red-600">Dilarang Promosi Judi Online:</strong> Segala bentuk promosi, link, atau ajakan main judi online (slot, dll) dilarang keras.</li>
+                <li><strong className="text-red-600">Dilarang Ujaran Kebencian (Hate Speech) & SARA:</strong> Jangan rasis, jangan bawa-bawa agama, suku, atau golongan buat nebar kebencian.</li>
+                <li><strong className="text-red-600">Dilarang Pencemaran Nama Baik:</strong> Jangan nyebarin fitnah, doxing (nyebarin data pribadi orang), atau nge-bully user lain.</li>
+                <li><strong className="text-red-600">Dilarang Spam:</strong> Jangan nyepam komentar atau postingan yang sama berulang-ulang.</li>
+              </ol>
+
+              <div className="bg-gray-100 p-4 border-l-4 border-black mt-4">
+                <p className="font-bold uppercase mb-2">Hak Admin:</p>
+                <p>Admin punya hak penuh buat <strong>MENGHAPUS KONTEN</strong> dan <strong>MEM-BANNED AKUN + IP ADDRESS</strong> lu tanpa pemberitahuan sebelumnya kalau lu melanggar aturan di atas. Kalau lu dilaporin ke pihak berwajib karena ulah lu sendiri, itu tanggung jawab lu pribadi.</p>
+              </div>
+            </div>
+            <div className="p-4 border-t-4 border-black bg-gray-50 flex justify-end">
+              <button 
+                onClick={() => {
+                  setAcceptedTos(true);
+                  setShowTosModal(false);
+                }}
+                className="brutal-btn bg-black text-white hover:bg-gray-800"
+              >
+                Gue Paham & Setuju
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
