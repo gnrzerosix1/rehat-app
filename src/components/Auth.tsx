@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 export default function Auth({ onCustomLogin }: { onCustomLogin?: (session: any) => void }) {
@@ -14,6 +14,21 @@ export default function Auth({ onCustomLogin }: { onCustomLogin?: (session: any)
   const [email, setEmail] = useState('');
   
   const [message, setMessage] = useState('');
+  const [welcomeText, setWelcomeText] = useState('Tempat curhat lu yang lagi nganggur. Ruang aman buat ngobrol santai tanpa pusing lihat orang pamer kesuksesan.');
+
+  useEffect(() => {
+    const fetchWelcomeText = async () => {
+      const { data } = await supabase
+        .from('sponsors')
+        .select('content')
+        .eq('link', '_WELCOME_TEXT_')
+        .single();
+      if (data && data.content) {
+        setWelcomeText(data.content);
+      }
+    };
+    fetchWelcomeText();
+  }, []);
 
   // Fungsi buat bikin UUID acak (karena kita gak pake Supabase Auth lagi buat bot)
   const generateUUID = () => {
@@ -118,8 +133,8 @@ export default function Auth({ onCustomLogin }: { onCustomLogin?: (session: any)
     <div className="min-h-screen flex items-center justify-center p-4 bg-white">
       <div className="w-full max-w-md brutal-border brutal-shadow p-8 bg-white">
         <h1 className="text-5xl font-bold mb-2 uppercase tracking-tighter">REHAT.</h1>
-        <p className="text-lg font-mono mb-8 border-b-2 border-black pb-4">
-          Tempat curhat lu yang lagi nganggur. Ruang aman buat ngobrol santai tanpa pusing lihat orang pamer kesuksesan.
+        <p className="text-lg font-mono mb-8 border-b-2 border-black pb-4 whitespace-pre-wrap">
+          {welcomeText}
         </p>
 
         {authMode === 'username' ? (

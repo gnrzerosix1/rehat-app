@@ -9,6 +9,10 @@ export default function Admin({ session }: { session: any }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [ads, setAds] = useState<any[]>([]);
+  
+  const [welcomeText, setWelcomeText] = useState('');
+  const [welcomeTextLoading, setWelcomeTextLoading] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState('');
 
   // Ganti dengan email lu yang jadi admin
   const ADMIN_EMAIL = 'mediakindo@gmail.com';
@@ -37,7 +41,15 @@ export default function Admin({ session }: { session: any }) {
     if (error) {
       console.error("Error fetch ads admin:", error);
     } else if (data) {
-      setAds(data);
+      const regularAds = data.filter(ad => ad.link !== '_WELCOME_TEXT_');
+      setAds(regularAds);
+      
+      const welcomeAd = data.find(ad => ad.link === '_WELCOME_TEXT_');
+      if (welcomeAd) {
+        setWelcomeText(welcomeAd.content);
+      } else {
+        setWelcomeText('Tempat curhat lu yang lagi nganggur. Ruang aman buat ngobrol santai tanpa pusing lihat orang pamer kesuksesan.');
+      }
     }
   };
 
@@ -61,6 +73,36 @@ export default function Admin({ session }: { session: any }) {
       fetchAds();
     }
     setLoading(false);
+  };
+
+  const handleSaveWelcomeText = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!welcomeText.trim()) return;
+
+    setWelcomeTextLoading(true);
+    setWelcomeMessage('');
+    
+    const { data: existing } = await supabase
+      .from('sponsors')
+      .select('id')
+      .eq('link', '_WELCOME_TEXT_')
+      .single();
+
+    if (existing) {
+      const { error } = await supabase
+        .from('sponsors')
+        .update({ content: welcomeText })
+        .eq('id', existing.id);
+      if (error) setWelcomeMessage(`Error: ${error.message}`);
+      else setWelcomeMessage('Teks sambutan berhasil diupdate!');
+    } else {
+      const { error } = await supabase
+        .from('sponsors')
+        .insert([{ content: welcomeText, link: '_WELCOME_TEXT_', is_active: true }]);
+      if (error) setWelcomeMessage(`Error: ${error.message}`);
+      else setWelcomeMessage('Teks sambutan berhasil disimpan!');
+    }
+    setWelcomeTextLoading(false);
   };
 
   const handleDeleteAd = async (id: string) => {
@@ -100,6 +142,27 @@ export default function Admin({ session }: { session: any }) {
             <span className="text-4xl font-bold">{userCount}</span>
           </div>
           <p className="text-xs text-gray-500 mt-4 font-mono">*User online real-time butuh upgrade Supabase Realtime.</p>
+        </div>
+
+        {/* Edit Welcome Text */}
+        <div className="p-6 brutal-border bg-[#e0f7fa]">
+          <h3 className="text-xl font-bold uppercase mb-4 border-b-2 border-black pb-2">Edit Teks Halaman Depan</h3>
+          <form onSubmit={handleSaveWelcomeText} className="flex flex-col gap-4">
+            <div>
+              <label className="block font-bold mb-1 uppercase text-sm">Teks Sambutan:</label>
+              <textarea
+                className="w-full brutal-input min-h-[80px] resize-none text-sm"
+                placeholder="Tempat curhat lu yang lagi nganggur..."
+                value={welcomeText}
+                onChange={(e) => setWelcomeText(e.target.value)}
+                required
+              />
+            </div>
+            <button className="brutal-btn brutal-shadow text-sm bg-blue-500 text-white hover:bg-blue-600" disabled={welcomeTextLoading}>
+              {welcomeTextLoading ? 'Menyimpan...' : 'Simpan Teks'}
+            </button>
+          </form>
+          {welcomeMessage && <p className="mt-4 font-mono text-sm font-bold text-blue-600">{welcomeMessage}</p>}
         </div>
 
         {/* Pasang Iklan */}
