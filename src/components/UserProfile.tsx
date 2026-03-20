@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 import { Heart, MessageCircle, Send } from 'lucide-react';
+import { renderContentWithEmbeds } from '../utils/embedParser';
 
-export default function UserProfile({ userId, session, onBack }: { userId: string, session: any, onBack: () => void }) {
+export default function UserProfile({ userId, session, onBack, onPostClick }: { userId: string, session: any, onBack: () => void, onPostClick?: (postId: string) => void }) {
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -167,6 +168,22 @@ export default function UserProfile({ userId, session, onBack }: { userId: strin
     }
   };
 
+  const handleDeleteComment = async (commentId: string) => {
+    if (!window.confirm('Yakin mau hapus komentar ini?')) return;
+    
+    const { error } = await supabase
+      .from('comments')
+      .delete()
+      .eq('id', commentId)
+      .eq('user_id', session.user.id);
+      
+    if (error) {
+      alert(`Gagal hapus komentar: ${error.message}`);
+    } else {
+      fetchUserPosts();
+    }
+  };
+
   const renderTextWithLinks = (text: string) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     return text.split(urlRegex).map((part, i) => {
@@ -232,7 +249,25 @@ export default function UserProfile({ userId, session, onBack }: { userId: strin
 
             return (
               <div key={post.id} className="p-6 brutal-border bg-white">
-                <p className="font-mono text-lg mb-4 whitespace-pre-wrap">{renderTextWithLinks(post.content)}</p>
+                {(() => {
+                  const words = post.content ? post.content.split(/\s+/) : [];
+                  const isLongPost = words.length > 88;
+                  const displayContent = isLongPost ? words.slice(0, 88).join(' ') + ' ...' : post.content;
+
+                  return (
+                    <>
+                      {renderContentWithEmbeds(displayContent, "font-mono text-lg mb-4 whitespace-pre-wrap break-words")}
+                      {isLongPost && onPostClick && (
+                        <button 
+                          onClick={() => onPostClick(post.id)}
+                          className="mt-2 mb-4 text-blue-600 font-bold hover:underline text-sm md:text-base block"
+                        >
+                          Baca Selengkapnya
+                        </button>
+                      )}
+                    </>
+                  );
+                })()}
                 
                 <div className="flex justify-between items-center text-sm font-bold uppercase border-t-2 border-black pt-4 text-gray-500">
                   <div className="flex items-center gap-4">
@@ -283,10 +318,18 @@ export default function UserProfile({ userId, session, onBack }: { userId: strin
                                   >
                                     Balas
                                   </button>
+                                  {comment.user_id === session.user.id && (
+                                    <button 
+                                      onClick={() => handleDeleteComment(comment.id)}
+                                      className="text-[10px] font-bold uppercase text-red-600 hover:underline"
+                                    >
+                                      Hapus
+                                    </button>
+                                  )}
                                   <span className="text-[10px] text-gray-500">{formatDistanceToNow(new Date(comment.created_at))}</span>
                                 </div>
                               </div>
-                              <p className="font-mono break-words">{renderTextWithLinks(comment.content)}</p>
+                              {renderContentWithEmbeds(comment.content, "font-mono break-words")}
                             </div>
                           </div>
                         ))

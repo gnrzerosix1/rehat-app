@@ -6,7 +6,7 @@ export const renderContentWithEmbeds = (content: string, textClassName: string =
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   const parts = content.split(urlRegex);
   
-  const embeds: JSX.Element[] = [];
+  const embeds: React.ReactNode[] = [];
 
   const formattedText = parts.map((part, i) => {
     if (part.match(urlRegex)) {

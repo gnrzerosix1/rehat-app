@@ -15,6 +15,7 @@ import { LogOut, Home, Briefcase, User, Users, ShieldAlert, Bell } from 'lucide-
 export default function App() {
   const [session, setSession] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'feed' | 'barter' | 'meetup' | 'profile' | 'admin' | 'userProfile' | 'friendsList' | 'notifications' | 'singlePost'>('feed');
+  const [previousTab, setPreviousTab] = useState<'feed' | 'barter' | 'meetup' | 'profile' | 'admin' | 'userProfile' | 'friendsList' | 'notifications' | 'singlePost'>('feed');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -85,6 +86,7 @@ export default function App() {
   };
 
   const handlePostClick = (postId: string) => {
+    setPreviousTab(activeTab);
     setSelectedPostId(postId);
     setActiveTab('singlePost');
   };
@@ -180,13 +182,13 @@ export default function App() {
 
       {/* Main Content */}
       <main className="p-2 md:p-8 pb-24 md:pb-8">
-        {activeTab === 'feed' && <Feed session={session} onUserClick={handleUserClick} onViewAllFriends={() => setActiveTab('friendsList')} />}
+        {activeTab === 'feed' && <Feed session={session} onUserClick={handleUserClick} onViewAllFriends={() => setActiveTab('friendsList')} onPostClick={handlePostClick} />}
         {activeTab === 'barter' && <SkillBarter session={session} onUserClick={handleUserClick} />}
         {activeTab === 'meetup' && <Meetup session={session} onUserClick={handleUserClick} />}
         {activeTab === 'profile' && <Profile session={session} />}
         {activeTab === 'admin' && <Admin session={session} />}
         {activeTab === 'userProfile' && selectedUserId && (
-          <UserProfile userId={selectedUserId} session={session} onBack={() => setActiveTab('feed')} />
+          <UserProfile userId={selectedUserId} session={session} onBack={() => setActiveTab('feed')} onPostClick={handlePostClick} />
         )}
         {activeTab === 'friendsList' && (
           <FriendsList session={session} onUserClick={handleUserClick} onBack={() => setActiveTab('feed')} />
@@ -195,7 +197,7 @@ export default function App() {
           <Notifications session={session} onUserClick={handleUserClick} onPostClick={handlePostClick} />
         )}
         {activeTab === 'singlePost' && selectedPostId && (
-          <SinglePost postId={selectedPostId} session={session} onUserClick={handleUserClick} onBack={() => setActiveTab('notifications')} />
+          <SinglePost postId={selectedPostId} session={session} onUserClick={handleUserClick} onBack={() => setActiveTab(previousTab)} />
         )}
       </main>
     </div>

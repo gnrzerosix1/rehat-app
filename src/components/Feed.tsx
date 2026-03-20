@@ -4,12 +4,13 @@ import { formatDistanceToNow } from 'date-fns';
 import { Heart, MessageCircle, Send, Search } from 'lucide-react';
 import { renderContentWithEmbeds } from '../utils/embedParser';
 
-export default function Feed({ session, onUserClick, onViewAllFriends }: { session: any, onUserClick: (userId: string) => void, onViewAllFriends: () => void }) {
+export default function Feed({ session, onUserClick, onViewAllFriends, onPostClick }: { session: any, onUserClick: (userId: string) => void, onViewAllFriends: () => void, onPostClick: (postId: string) => void }) {
   const [posts, setPosts] = useState<any[]>([]);
   const [ads, setAds] = useState<any[]>([]);
   const [friends, setFriends] = useState<any[]>([]);
   const [newPost, setNewPost] = useState('');
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   
   // State untuk komentar
@@ -54,6 +55,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
   };
 
   const fetchPosts = async () => {
+    setInitialLoading(true);
     const { data, error } = await supabase
       .from('posts')
       .select(`
@@ -83,6 +85,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
       setPosts(formattedData);
       setErrorMsg('');
     }
+    setInitialLoading(false);
   };
 
   const fetchAds = async () => {
@@ -392,17 +395,24 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
       </div>
 
       <div className="flex flex-col gap-4 md:gap-6">
-        {posts.length === 0 && !errorMsg && (
+        {initialLoading ? (
+          <div className="p-8 text-center font-mono font-bold uppercase border-2 border-black bg-yellow-100 text-sm md:text-base brutal-shadow">
+            Sabar bro, lagi ngambil data curhatan...
+          </div>
+        ) : posts.length === 0 && !errorMsg ? (
           <div className="p-8 text-center font-mono text-gray-500 border-2 border-dashed border-gray-400 text-sm md:text-base">
             Belum ada yang lempar nasib. Jadilah yang pertama!
           </div>
-        )}
-
-        {posts.map((post) => {
+        ) : (
+          posts.map((post) => {
           const isLiked = post.likes?.some((like: any) => like.user_id === session.user.id);
           const likeCount = post.likes?.length || 0;
           const commentCount = post.comments?.length || 0;
           const isCommentsExpanded = showComments[post.id];
+
+          const words = post.content ? post.content.split(/\s+/) : [];
+          const isLongPost = words.length > 88;
+          const displayContent = isLongPost ? words.slice(0, 88).join(' ') + ' ...' : post.content;
 
           return (
             <div key={post.id} className="p-4 md:p-6 brutal-border bg-white">
@@ -428,7 +438,16 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
                     </span>
                     <span className="text-gray-500 whitespace-nowrap">{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</span>
                   </div>
-                  {renderContentWithEmbeds(post.content, "font-mono text-sm md:text-lg whitespace-pre-wrap break-words")}
+                  {renderContentWithEmbeds(displayContent, "font-mono text-sm md:text-lg whitespace-pre-wrap break-words")}
+                  
+                  {isLongPost && (
+                    <button 
+                      onClick={() => onPostClick(post.id)}
+                      className="mt-2 text-blue-600 font-bold hover:underline text-sm md:text-base"
+                    >
+                      Baca Selengkapnya
+                    </button>
+                  )}
                   
                   {/* Actions: Like & Comment */}
                   <div className="flex items-center gap-4 mt-4 pt-4 border-t-2 border-gray-200">
@@ -536,7 +555,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
               </div>
             </div>
           );
-        })}
+        }))}
       </div>
     </div>
   );
