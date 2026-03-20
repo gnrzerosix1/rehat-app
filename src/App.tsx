@@ -19,6 +19,7 @@ export default function App() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingReportsCount, setPendingReportsCount] = useState(0);
 
   useEffect(() => {
     // Cek local session dulu (buat akun bot)
@@ -51,8 +52,40 @@ export default function App() {
   useEffect(() => {
     if (session) {
       fetchUnreadCount();
+      checkBanAndRecordIP(session.user.id);
+      if (session.user.email === 'mediakindo@gmail.com') {
+        fetchPendingReportsCount();
+      }
     }
   }, [session, activeTab]);
+
+  const checkBanAndRecordIP = async (userId: string) => {
+    try {
+      const res = await fetch('https://api.ipify.org?format=json');
+      const { ip } = await res.json();
+
+      // Check if banned
+      const { data: banned } = await supabase.from('banned_ips').select('ip_address').eq('ip_address', ip).single();
+      if (banned) {
+        alert('Akses ditolak. IP lu udah di-banned dari Rehat karena melanggar aturan.');
+        handleLogout();
+        return;
+      }
+
+      // Record IP
+      await supabase.from('profiles').update({ last_ip: ip }).eq('id', userId);
+    } catch (e) {
+      console.error('IP check failed', e);
+    }
+  };
+
+  const fetchPendingReportsCount = async () => {
+    const { count } = await supabase
+      .from('reports')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    setPendingReportsCount(count || 0);
+  };
 
   const fetchUnreadCount = async () => {
     const { count } = await supabase
@@ -170,12 +203,17 @@ export default function App() {
         {isAdmin && (
           <button
             onClick={() => setActiveTab('admin')}
-            className={`flex-1 p-2 md:p-4 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-colors ${
+            className={`relative flex-1 p-2 md:p-4 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-colors ${
               activeTab === 'admin' ? 'bg-black text-white' : 'hover:bg-gray-100'
             }`}
           >
             <ShieldAlert size={20} />
             <span className="text-[10px] md:text-sm lg:text-lg font-bold uppercase">Admin</span>
+            {pendingReportsCount > 0 && (
+              <span className="absolute top-1 right-1 md:top-2 md:right-2 bg-red-600 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+                {pendingReportsCount}
+              </span>
+            )}
           </button>
         )}
       </nav>

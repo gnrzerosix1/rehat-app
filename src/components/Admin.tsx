@@ -13,6 +13,7 @@ export default function Admin({ session }: { session: any }) {
   const [welcomeText, setWelcomeText] = useState('');
   const [welcomeTextLoading, setWelcomeTextLoading] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState('');
+  const [reports, setReports] = useState<any[]>([]);
 
   // Ganti dengan email lu yang jadi admin
   const ADMIN_EMAIL = 'mediakindo@gmail.com';
@@ -22,8 +23,65 @@ export default function Admin({ session }: { session: any }) {
     if (isAdmin) {
       fetchStats();
       fetchAds();
+      fetchReports();
     }
   }, [isAdmin]);
+
+  const fetchReports = async () => {
+    const { data, error } = await supabase
+      .from('reports')
+      .select(`
+        *,
+        reporter:profiles!reporter_id(username),
+        reported:profiles!reported_user_id(username, last_ip),
+        posts(content),
+        comments(content)
+      `)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    
+    if (data) setReports(data);
+    else console.error('Error fetching reports:', error);
+  };
+
+  const handleResolveReport = async (reportId: string) => {
+    await supabase.from('reports').update({ status: 'resolved' }).eq('id', reportId);
+    fetchReports();
+  };
+
+  const handleDeleteContent = async (report: any) => {
+    if (!window.confirm('Yakin mau hapus konten ini?')) return;
+    if (report.post_id) {
+      await supabase.from('posts').delete().eq('id', report.post_id);
+    }
+    if (report.comment_id) {
+      await supabase.from('comments').delete().eq('id', report.comment_id);
+    }
+    handleResolveReport(report.id);
+    alert('Konten berhasil dihapus.');
+  };
+
+  const handleBanUser = async (report: any) => {
+    if (!window.confirm('Yakin mau BANNED user ini dan IP-nya?')) return;
+
+    // 1. Dapatkan IP terakhir user
+    const { data: profile } = await supabase.from('profiles').select('last_ip').eq('id', report.reported_user_id).single();
+
+    if (profile && profile.last_ip) {
+      // 2. Masukkan ke banned_ips
+      await supabase.from('banned_ips').insert([{
+        ip_address: profile.last_ip,
+        reason: `Banned via report ${report.id} - ${report.reason}`
+      }]);
+    }
+
+    // 3. Hapus semua postingan & komentar user ini (opsional, tapi bagus buat bersih-bersih)
+    await supabase.from('posts').delete().eq('user_id', report.reported_user_id);
+    await supabase.from('comments').delete().eq('user_id', report.reported_user_id);
+
+    handleResolveReport(report.id);
+    alert('User dan IP berhasil dibanned! Semua kontennya udah dihapus.');
+  };
 
   const fetchStats = async () => {
     const { count } = await supabase
@@ -134,6 +192,69 @@ export default function Admin({ session }: { session: any }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Laporan Masuk */}
+        <div className="p-6 brutal-border bg-orange-100 md:col-span-2">
+          <h3 className="text-xl font-bold uppercase mb-4 border-b-2 border-black pb-2 flex items-center gap-2">
+            Laporan Masuk 
+            {reports.length > 0 && (
+              <span className="bg-red-600 text-white text-xs px-2 py-1 rounded-full">{reports.length}</span>
+            )}
+          </h3>
+          
+          {reports.length === 0 ? (
+            <p className="font-mono text-gray-600">Belum ada laporan. Aman terkendali bos.</p>
+          ) : (
+            <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+              {reports.map(report => (
+                <div key={report.id} className="p-4 bg-white brutal-border brutal-shadow-sm flex flex-col gap-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-bold uppercase">
+                        <span className="text-red-600">Pelapor:</span> {report.reporter?.username || 'Anonim'}
+                      </p>
+                      <p className="text-sm font-bold uppercase">
+                        <span className="text-red-600">Terlapor:</span> {report.reported?.username || 'Anonim'} (IP: {report.reported?.last_ip || 'Tidak diketahui'})
+                      </p>
+                      <p className="text-sm font-mono mt-2 bg-gray-100 p-2">
+                        <span className="font-bold">Alasan:</span> {report.reason}
+                      </p>
+                    </div>
+                    <span className="text-xs font-mono text-gray-500">{new Date(report.created_at).toLocaleDateString()}</span>
+                  </div>
+                  
+                  <div className="mt-2 border-l-4 border-orange-500 pl-3 py-1">
+                    <p className="text-xs font-bold text-gray-500 uppercase mb-1">Konten yang dilaporkan:</p>
+                    <p className="text-sm font-mono break-words">
+                      {report.post_id ? report.posts?.content : report.comment_id ? report.comments?.content : 'Konten tidak ditemukan'}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t-2 border-gray-200">
+                    <button 
+                      onClick={() => handleDeleteContent(report)}
+                      className="px-3 py-1 bg-red-500 text-white font-bold text-xs uppercase hover:bg-red-600 transition-colors"
+                    >
+                      Hapus Konten
+                    </button>
+                    <button 
+                      onClick={() => handleBanUser(report)}
+                      className="px-3 py-1 bg-black text-white font-bold text-xs uppercase hover:bg-gray-800 transition-colors"
+                    >
+                      Banned User & IP
+                    </button>
+                    <button 
+                      onClick={() => handleResolveReport(report.id)}
+                      className="px-3 py-1 bg-gray-200 text-black font-bold text-xs uppercase hover:bg-gray-300 transition-colors ml-auto"
+                    >
+                      Abaikan / Selesai
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Stats Card */}
         <div className="p-6 brutal-border bg-white">
           <h3 className="text-xl font-bold uppercase mb-4 border-b-2 border-black pb-2">Statistik</h3>

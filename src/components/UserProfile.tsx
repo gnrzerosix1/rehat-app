@@ -184,6 +184,26 @@ export default function UserProfile({ userId, session, onBack, onPostClick }: { 
     }
   };
 
+  const handleReport = async (type: 'post' | 'comment', id: string, reportedUserId: string) => {
+    const reason = window.prompt('Kenapa lu ngelaporin ini? (Misal: spam, kasar, bokep, dll)');
+    if (!reason) return;
+
+    const { error } = await supabase.from('reports').insert([{
+      reporter_id: session.user.id,
+      reported_user_id: reportedUserId,
+      post_id: type === 'post' ? id : null,
+      comment_id: type === 'comment' ? id : null,
+      reason: reason,
+      status: 'pending'
+    }]);
+
+    if (error) {
+      alert(`Gagal ngirim laporan: ${error.message}. Pastiin admin udah bikin tabel 'reports'.`);
+    } else {
+      alert('Laporan berhasil dikirim ke Admin. Thanks bro!');
+    }
+  };
+
   const renderTextWithLinks = (text: string) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     return text.split(urlRegex).map((part, i) => {
@@ -285,6 +305,14 @@ export default function UserProfile({ userId, session, onBack, onPostClick }: { 
                       <MessageCircle size={18} />
                       <span>{commentCount}</span>
                     </button>
+                    {post.user_id !== session.user.id && (
+                      <button 
+                        onClick={() => handleReport('post', post.id, post.user_id)}
+                        className="text-orange-600 text-xs font-bold uppercase hover:underline ml-2"
+                      >
+                        Laporkan
+                      </button>
+                    )}
                   </div>
                   <span>{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</span>
                 </div>
@@ -324,6 +352,14 @@ export default function UserProfile({ userId, session, onBack, onPostClick }: { 
                                       className="text-[10px] font-bold uppercase text-red-600 hover:underline"
                                     >
                                       Hapus
+                                    </button>
+                                  )}
+                                  {comment.user_id !== session.user.id && (
+                                    <button 
+                                      onClick={() => handleReport('comment', comment.id, comment.user_id)}
+                                      className="text-[10px] font-bold uppercase text-orange-600 hover:underline"
+                                    >
+                                      Laporkan
                                     </button>
                                   )}
                                   <span className="text-[10px] text-gray-500">{formatDistanceToNow(new Date(comment.created_at))}</span>
