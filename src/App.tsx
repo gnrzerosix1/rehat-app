@@ -118,12 +118,8 @@ export default function App() {
   const isAdmin = session.user.email === 'mediakindo@gmail.com';
 
   const handleUserClick = (userId: string) => {
-    if (userId === session.user.id) {
-      setActiveTab('profile');
-    } else {
-      setSelectedUserId(userId);
-      setActiveTab('userProfile');
-    }
+    setSelectedUserId(userId);
+    setActiveTab('userProfile');
   };
 
   const handlePostClick = (postId: string) => {
@@ -200,9 +196,12 @@ export default function App() {
           <span className="text-[10px] md:text-sm lg:text-lg font-bold uppercase">Nongkrong</span>
         </button>
         <button
-          onClick={() => setActiveTab('profile')}
+          onClick={() => {
+            setSelectedUserId(session.user.id);
+            setActiveTab('userProfile');
+          }}
           className={`flex-1 p-2 md:p-4 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 ${isAdmin ? 'border-r-4 border-black' : ''} transition-colors ${
-            activeTab === 'profile' ? 'bg-black text-white' : 'hover:bg-gray-100'
+            activeTab === 'userProfile' && selectedUserId === session.user.id ? 'bg-black text-white' : 'hover:bg-gray-100'
           }`}
         >
           <User size={20} />
@@ -231,10 +230,10 @@ export default function App() {
         {activeTab === 'feed' && <Feed session={session} onUserClick={handleUserClick} onViewAllFriends={() => setActiveTab('friendsList')} onPostClick={handlePostClick} />}
         {activeTab === 'barter' && <SkillBarter session={session} onUserClick={handleUserClick} />}
         {activeTab === 'meetup' && <Meetup session={session} onUserClick={handleUserClick} />}
-        {activeTab === 'profile' && <Profile session={session} />}
+        {activeTab === 'editProfile' && <Profile session={session} onBack={() => setActiveTab('userProfile')} />}
         {activeTab === 'admin' && <Admin session={session} />}
         {activeTab === 'userProfile' && selectedUserId && (
-          <UserProfile userId={selectedUserId} session={session} onBack={() => setActiveTab('feed')} onPostClick={handlePostClick} />
+          <UserProfile userId={selectedUserId} session={session} onBack={() => setActiveTab('feed')} onPostClick={handlePostClick} onEditProfile={() => setActiveTab('editProfile')} />
         )}
         {activeTab === 'friendsList' && (
           <FriendsList session={session} onUserClick={handleUserClick} onBack={() => setActiveTab('feed')} />
