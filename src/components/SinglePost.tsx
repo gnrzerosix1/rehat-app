@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 import { Heart, MessageCircle, Send } from 'lucide-react';
 import { renderContentWithEmbeds } from '../utils/embedParser';
+import { containsBadWords } from '../utils/badWordFilter';
 
 export default function SinglePost({ postId, session, onUserClick, onBack }: { postId: string, session: any, onUserClick: (userId: string) => void, onBack: () => void }) {
   const [post, setPost] = useState<any>(null);
@@ -57,6 +58,11 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
 
   const handlePostComment = async () => {
     if (!commentText.trim()) return;
+
+    if (containsBadWords(commentText)) {
+      alert('Komentar lu mengandung kata-kata yang dilarang (bullying/anti-AI). Tolong jaga ketikan bos!');
+      return;
+    }
 
     const { error } = await supabase.from('comments').insert([
       { post_id: postId, user_id: session.user.id, content: commentText }

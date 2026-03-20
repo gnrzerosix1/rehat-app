@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
-import { Heart, MessageCircle, Send } from 'lucide-react';
+import { Heart, MessageCircle, Send, Search } from 'lucide-react';
 import { renderContentWithEmbeds } from '../utils/embedParser';
+import { containsBadWords } from '../utils/badWordFilter';
 
 export default function Feed({ session, onUserClick, onViewAllFriends }: { session: any, onUserClick: (userId: string) => void, onViewAllFriends: () => void }) {
   const [posts, setPosts] = useState<any[]>([]);
@@ -16,11 +17,42 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const [showComments, setShowComments] = useState<Record<string, boolean>>({});
 
+  // State untuk pencarian
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
   useEffect(() => {
     fetchPosts();
     fetchAds();
     fetchFriends();
   }, []);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery.trim()) {
+        searchUsers(searchQuery);
+      } else {
+        setSearchResults([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  const searchUsers = async (query: string) => {
+    setIsSearching(true);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url')
+      .ilike('username', `%${query}%`)
+      .limit(5);
+    
+    if (!error && data) {
+      setSearchResults(data);
+    }
+    setIsSearching(false);
+  };
 
   const fetchPosts = async () => {
     const { data, error } = await supabase
@@ -95,6 +127,11 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
     e.preventDefault();
     if (!newPost.trim()) return;
 
+    if (containsBadWords(newPost)) {
+      setErrorMsg('Postingan lu mengandung kata-kata yang dilarang (bullying/anti-AI). Tolong jaga ketikan bos!');
+      return;
+    }
+
     setLoading(true);
     setErrorMsg('');
     const { error } = await supabase.from('posts').insert([
@@ -150,6 +187,11 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
   const handlePostComment = async (postId: string, postOwnerId: string) => {
     const text = commentText[postId];
     if (!text?.trim()) return;
+
+    if (containsBadWords(text)) {
+      alert('Komentar lu mengandung kata-kata yang dilarang (bullying/anti-AI). Tolong jaga ketikan bos!');
+      return;
+    }
 
     const { error } = await supabase.from('comments').insert([
       { post_id: postId, user_id: session.user.id, content: text }
@@ -227,6 +269,52 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
 
   return (
     <div className="max-w-2xl mx-auto p-2 md:p-4">
+      {/* Search Bar */}
+      <div className="mb-6 relative z-50">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Cari username temen lu..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full brutal-input pl-10 py-3 text-sm md:text-base"
+          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+        </div>
+        
+        {/* Search Results Dropdown */}
+        {searchQuery.trim() && (
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white brutal-border brutal-shadow max-h-[300px] overflow-y-auto">
+            {isSearching ? (
+              <div className="p-4 text-center font-mono text-sm">Mencari...</div>
+            ) : searchResults.length > 0 ? (
+              searchResults.map(user => (
+                <div 
+                  key={user.id} 
+                  className="p-3 border-b-2 border-black last:border-b-0 flex items-center gap-3 cursor-pointer hover:bg-yellow-100 transition-colors"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSearchResults([]);
+                    onUserClick(user.id);
+                  }}
+                >
+                  <div className="w-8 h-8 rounded-full brutal-border overflow-hidden bg-gray-200 shrink-0">
+                    {user.avatar_url ? (
+                      <img src={user.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center font-bold text-xs">?</div>
+                    )}
+                  </div>
+                  <span className="font-bold uppercase text-sm">{user.username || 'Anonim'}</span>
+                </div>
+              ))
+            ) : (
+              <div className="p-4 text-center font-mono text-sm text-gray-500">User nggak ketemu bos.</div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Tampilkan Iklan jika ada */}
       {ads.length > 0 && (
         <div className="mb-6 md:mb-8 p-4 brutal-border bg-yellow-300 flex flex-col gap-3">
