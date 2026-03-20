@@ -93,6 +93,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
       .from('sponsors')
       .select('*')
       .eq('is_active', true)
+      .neq('link', '_WELCOME_TEXT_')
       .order('created_at', { ascending: false })
       .limit(1);
     
