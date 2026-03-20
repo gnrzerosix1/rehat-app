@@ -126,6 +126,22 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
     }
   };
 
+  const handleDeleteComment = async (commentId: string) => {
+    if (!window.confirm('Yakin mau hapus komentar ini?')) return;
+    
+    const { error } = await supabase
+      .from('comments')
+      .delete()
+      .eq('id', commentId)
+      .eq('user_id', session.user.id);
+      
+    if (error) {
+      alert(`Gagal hapus komentar: ${error.message}`);
+    } else {
+      fetchPost();
+    }
+  };
+
   const renderTextWithLinks = (text: string) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     return text.split(urlRegex).map((part, i) => {
@@ -229,6 +245,14 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
                             >
                               Balas
                             </button>
+                            {comment.user_id === session.user.id && (
+                              <button 
+                                onClick={() => handleDeleteComment(comment.id)}
+                                className="text-[10px] font-bold uppercase text-red-600 hover:underline"
+                              >
+                                Hapus
+                              </button>
+                            )}
                             <span className="text-[10px] text-gray-500">{formatDistanceToNow(new Date(comment.created_at))}</span>
                           </div>
                         </div>
