@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 import { Heart, MessageCircle, Send, Search } from 'lucide-react';
 import { renderContentWithEmbeds } from '../utils/embedParser';
-import { containsBadWords } from '../utils/badWordFilter';
 
 export default function Feed({ session, onUserClick, onViewAllFriends }: { session: any, onUserClick: (userId: string) => void, onViewAllFriends: () => void }) {
   const [posts, setPosts] = useState<any[]>([]);
@@ -127,11 +126,6 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
     e.preventDefault();
     if (!newPost.trim()) return;
 
-    if (containsBadWords(newPost)) {
-      setErrorMsg('Postingan lu mengandung kata-kata yang dilarang (bullying/anti-AI). Tolong jaga ketikan bos!');
-      return;
-    }
-
     setLoading(true);
     setErrorMsg('');
     const { error } = await supabase.from('posts').insert([
@@ -187,11 +181,6 @@ export default function Feed({ session, onUserClick, onViewAllFriends }: { sessi
   const handlePostComment = async (postId: string, postOwnerId: string) => {
     const text = commentText[postId];
     if (!text?.trim()) return;
-
-    if (containsBadWords(text)) {
-      alert('Komentar lu mengandung kata-kata yang dilarang (bullying/anti-AI). Tolong jaga ketikan bos!');
-      return;
-    }
 
     const { error } = await supabase.from('comments').insert([
       { post_id: postId, user_id: session.user.id, content: text }
