@@ -64,10 +64,18 @@ export default function App() {
       const res = await fetch('https://api.ipify.org?format=json');
       const { ip } = await res.json();
 
-      // Check if banned
+      // Check if IP is banned
       const { data: banned } = await supabase.from('banned_ips').select('ip_address').eq('ip_address', ip).single();
       if (banned) {
         alert('Akses ditolak. IP lu udah di-banned dari Rehat karena melanggar aturan.');
+        handleLogout();
+        return;
+      }
+
+      // Check if account is banned
+      const { data: profile } = await supabase.from('profiles').select('is_banned').eq('id', userId).single();
+      if (profile?.is_banned) {
+        alert('Akses ditolak. Akun lu udah di-banned dari Rehat karena melanggar aturan.');
         handleLogout();
         return;
       }

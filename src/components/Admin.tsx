@@ -62,7 +62,7 @@ export default function Admin({ session }: { session: any }) {
   };
 
   const handleBanUser = async (report: any) => {
-    if (!window.confirm('Yakin mau BANNED user ini dan IP-nya?')) return;
+    if (!window.confirm('Yakin mau BANNED akun ini dan IP-nya?')) return;
 
     // 1. Dapatkan IP terakhir user
     const { data: profile } = await supabase.from('profiles').select('last_ip').eq('id', report.reported_user_id).single();
@@ -75,12 +75,15 @@ export default function Admin({ session }: { session: any }) {
       }]);
     }
 
-    // 3. Hapus semua postingan & komentar user ini (opsional, tapi bagus buat bersih-bersih)
+    // 3. Banned akunnya
+    await supabase.from('profiles').update({ is_banned: true }).eq('id', report.reported_user_id);
+
+    // 4. Hapus semua postingan & komentar user ini (opsional, tapi bagus buat bersih-bersih)
     await supabase.from('posts').delete().eq('user_id', report.reported_user_id);
     await supabase.from('comments').delete().eq('user_id', report.reported_user_id);
 
     handleResolveReport(report.id);
-    alert('User dan IP berhasil dibanned! Semua kontennya udah dihapus.');
+    alert('Akun dan IP berhasil dibanned! Semua kontennya udah dihapus.');
   };
 
   const fetchStats = async () => {
@@ -240,7 +243,7 @@ export default function Admin({ session }: { session: any }) {
                       onClick={() => handleBanUser(report)}
                       className="px-3 py-1 bg-black text-white font-bold text-xs uppercase hover:bg-gray-800 transition-colors"
                     >
-                      Banned User & IP
+                      Banned Akun & IP
                     </button>
                     <button 
                       onClick={() => handleResolveReport(report.id)}
