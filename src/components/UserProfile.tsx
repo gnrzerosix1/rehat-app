@@ -4,7 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Heart, MessageCircle, Send } from 'lucide-react';
 import { renderContentWithEmbeds } from '../utils/embedParser';
 
-export default function UserProfile({ userId, session, onBack, onPostClick }: { userId: string, session: any, onBack: () => void, onPostClick?: (postId: string) => void }) {
+export default function UserProfile({ userId, session, onBack, onPostClick, onEditProfile }: { userId: string, session: any, onBack: () => void, onPostClick?: (postId: string) => void, onEditProfile?: () => void }) {
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -204,6 +204,22 @@ export default function UserProfile({ userId, session, onBack, onPostClick }: { 
     }
   };
 
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm('Yakin mau hapus postingan ini?')) return;
+    
+    const { error } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', postId)
+      .eq('user_id', session.user.id);
+      
+    if (error) {
+      alert(`Gagal hapus postingan: ${error.message}`);
+    } else {
+      fetchUserPosts();
+    }
+  };
+
   const renderTextWithLinks = (text: string) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     return text.split(urlRegex).map((part, i) => {
@@ -245,15 +261,24 @@ export default function UserProfile({ userId, session, onBack, onPostClick }: { 
           </div>
         </div>
 
-        <button
-          onClick={toggleFollow}
-          disabled={followLoading}
-          className={`w-full py-3 font-bold uppercase border-4 border-black transition-colors brutal-shadow ${
-            isFollowing ? 'bg-white text-black hover:bg-red-100' : 'bg-black text-white hover:bg-gray-800'
-          }`}
-        >
-          {followLoading ? 'Tunggu...' : isFollowing ? 'Batal Temanan' : '+ Tambah Teman'}
-        </button>
+        {userId === session.user.id ? (
+          <button
+            onClick={onEditProfile}
+            className="w-full py-3 font-bold uppercase border-4 border-black transition-colors brutal-shadow bg-yellow-300 text-black hover:bg-yellow-400"
+          >
+            Edit Profil Gue
+          </button>
+        ) : (
+          <button
+            onClick={toggleFollow}
+            disabled={followLoading}
+            className={`w-full py-3 font-bold uppercase border-4 border-black transition-colors brutal-shadow ${
+              isFollowing ? 'bg-white text-black hover:bg-red-100' : 'bg-black text-white hover:bg-gray-800'
+            }`}
+          >
+            {followLoading ? 'Tunggu...' : isFollowing ? 'Batal Temanan' : '+ Tambah Teman'}
+          </button>
+        )}
       </div>
 
       <h3 className="text-2xl font-bold uppercase mb-4 border-b-4 border-black pb-2">Postingan {profile.username || 'Anonim'}</h3>
@@ -305,6 +330,14 @@ export default function UserProfile({ userId, session, onBack, onPostClick }: { 
                       <MessageCircle size={18} />
                       <span>{commentCount}</span>
                     </button>
+                    {post.user_id === session.user.id && (
+                      <button 
+                        onClick={() => handleDeletePost(post.id)}
+                        className="text-red-600 text-xs font-bold uppercase hover:underline ml-2"
+                      >
+                        Hapus
+                      </button>
+                    )}
                     {post.user_id !== session.user.id && (
                       <button 
                         onClick={() => handleReport('post', post.id, post.user_id)}

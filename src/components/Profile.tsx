@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
-export default function Profile({ session }: { session: any }) {
+export default function Profile({ session, onBack }: { session: any, onBack?: () => void }) {
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
@@ -104,6 +104,11 @@ export default function Profile({ session }: { session: any }) {
 
   return (
     <div className="max-w-2xl mx-auto p-4">
+      {onBack && (
+        <button onClick={onBack} className="mb-6 font-bold uppercase hover:underline flex items-center gap-2 bg-black text-white px-4 py-2 brutal-shadow">
+          ← Balik
+        </button>
+      )}
       <div className="p-8 brutal-border brutal-shadow bg-white">
         <h2 className="text-3xl font-bold uppercase mb-6 border-b-4 border-black pb-2">Identitas Lu</h2>
         
