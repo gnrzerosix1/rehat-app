@@ -238,7 +238,7 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
   if (!profile) return <div className="p-8 text-center font-mono font-bold uppercase">User nggak ketemu.</div>;
 
   return (
-    <>
+    <React.Fragment>
       {profile.background_url && (
         <div 
           className="fixed inset-0 z-[-1] pointer-events-none" 
@@ -444,6 +444,6 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
         )}
       </div>
     </div>
-    </>
+    </React.Fragment>
   );
 }
