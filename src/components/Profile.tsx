@@ -118,10 +118,10 @@ export default function Profile({ session, onBack }: { session: any, onBack?: ()
 
       const file = event.target.files[0];
       
-      // Kompresi gambar maks 100KB
+      // Kompresi gambar maks 1.5MB
       const options = {
-        maxSizeMB: 0.1,
-        maxWidthOrHeight: 1280,
+        maxSizeMB: 1.5,
+        maxWidthOrHeight: 1920,
         useWebWorker: true,
       };
       
@@ -186,7 +186,7 @@ export default function Profile({ session, onBack }: { session: any, onBack?: ()
 
           {/* Background Upload */}
           <div className="flex flex-col gap-4 p-4 brutal-border bg-[#f0f0f0]">
-            <label className="block font-bold uppercase text-sm">Ganti Background Profil (&lt; 100KB)</label>
+            <label className="block font-bold uppercase text-sm">Ganti Background Profil (&lt; 1.5MB)</label>
             {backgroundUrl && (
               <div className="w-full h-32 brutal-border bg-gray-200">
                 <img src={backgroundUrl} alt="Background" className="w-full h-full object-cover object-center" />

@@ -241,7 +241,7 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
     <React.Fragment>
       {profile.background_url && (
         <div 
-          className="fixed inset-0 z-[-1] pointer-events-none" 
+          className="fixed inset-0 z-0 pointer-events-none" 
           style={{ backgroundImage: `url(${profile.background_url})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }} 
         />
       )}
