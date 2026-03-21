@@ -238,13 +238,20 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
   if (!profile) return <div className="p-8 text-center font-mono font-bold uppercase">User nggak ketemu.</div>;
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
-      <button onClick={onBack} className="mb-6 font-bold uppercase hover:underline flex items-center gap-2 bg-black text-white px-4 py-2 brutal-shadow">
-        ← Balik
-      </button>
+    <>
+      {profile.background_url && (
+        <div 
+          className="fixed inset-0 z-[-1] pointer-events-none" 
+          style={{ backgroundImage: `url(${profile.background_url})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }} 
+        />
+      )}
+      <div className="max-w-2xl mx-auto p-4 relative z-0">
+        <button onClick={onBack} className="mb-6 font-bold uppercase hover:underline flex items-center gap-2 bg-black text-white px-4 py-2 brutal-shadow">
+          ← Balik
+        </button>
 
-      <div className="p-8 brutal-border brutal-shadow bg-white mb-8">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-6 text-center sm:text-left">
+        <div className="p-8 brutal-border brutal-shadow bg-white/90 backdrop-blur-md mb-8">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-6 text-center sm:text-left">
           <div className="w-32 h-32 brutal-border overflow-hidden bg-gray-200 shrink-0">
             {profile.avatar_url ? (
               <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
@@ -281,7 +288,9 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
         )}
       </div>
 
-      <h3 className="text-2xl font-bold uppercase mb-4 border-b-4 border-black pb-2">Postingan {profile.username || 'Anonim'}</h3>
+      <h3 className="text-2xl font-bold uppercase mb-4 border-b-4 border-black pb-2">
+        <span className="bg-white/90 backdrop-blur-md px-2 py-1 inline-block">Postingan {profile.username || 'Anonim'}</span>
+      </h3>
       <div className="flex flex-col gap-6">
         {posts.length === 0 ? (
           <p className="font-mono text-gray-500 p-8 text-center border-2 border-dashed border-gray-400">Belum ada postingan.</p>
@@ -435,5 +444,6 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
         )}
       </div>
     </div>
+    </>
   );
 }

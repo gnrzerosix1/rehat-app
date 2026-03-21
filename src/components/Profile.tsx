@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import imageCompression from 'browser-image-compression';
 
 export default function Profile({ session, onBack }: { session: any, onBack?: () => void }) {
   const [loading, setLoading] = useState(true);
@@ -7,8 +8,10 @@ export default function Profile({ session, onBack }: { session: any, onBack?: ()
   const [bio, setBio] = useState('');
   const [city, setCity] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [backgroundUrl, setBackgroundUrl] = useState('');
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [uploadingBg, setUploadingBg] = useState(false);
 
   useEffect(() => {
     getProfile();
@@ -21,7 +24,7 @@ export default function Profile({ session, onBack }: { session: any, onBack?: ()
 
       const { data, error, status } = await supabase
         .from('profiles')
-        .select(`username, bio, avatar_url, city`)
+        .select(`username, bio, avatar_url, city, background_url`)
         .eq('id', user.id)
         .single();
 
@@ -34,6 +37,7 @@ export default function Profile({ session, onBack }: { session: any, onBack?: ()
         setBio(data.bio || '');
         setCity(data.city || '');
         setAvatarUrl(data.avatar_url || '');
+        setBackgroundUrl(data.background_url || '');
       }
     } catch (error: any) {
       console.error('Error loading user data!', error.message);
@@ -55,6 +59,7 @@ export default function Profile({ session, onBack }: { session: any, onBack?: ()
         bio,
         city,
         avatar_url: avatarUrl,
+        background_url: backgroundUrl,
         updated_at: new Date(),
       };
 
@@ -102,6 +107,49 @@ export default function Profile({ session, onBack }: { session: any, onBack?: ()
     }
   }
 
+  async function uploadBackground(event: React.ChangeEvent<HTMLInputElement>) {
+    try {
+      setUploadingBg(true);
+      setMessage('');
+
+      if (!event.target.files || event.target.files.length === 0) {
+        throw new Error('Pilih gambar background dulu.');
+      }
+
+      const file = event.target.files[0];
+      
+      // Kompresi gambar maks 100KB
+      const options = {
+        maxSizeMB: 0.1,
+        maxWidthOrHeight: 1280,
+        useWebWorker: true,
+      };
+      
+      setMessage('Lagi ngompres gambar (biar hemat kuota)...');
+      const compressedFile = await imageCompression(file, options);
+      
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${session.user.id}-bg-${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      setMessage('Lagi upload ke Supabase...');
+      let { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, compressedFile);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      
+      setBackgroundUrl(data.publicUrl);
+      setMessage('Background berhasil diupload! Jangan lupa klik Simpan Profil.');
+    } catch (error: any) {
+      setMessage(`Gagal upload background: ${error.message}.`);
+    } finally {
+      setUploadingBg(false);
+    }
+  }
+
   return (
     <div className="max-w-2xl mx-auto p-4">
       {onBack && (
@@ -134,6 +182,24 @@ export default function Profile({ session, onBack }: { session: any, onBack?: ()
               />
               {uploading && <p className="text-sm font-mono mt-2">Lagi upload...</p>}
             </div>
+          </div>
+
+          {/* Background Upload */}
+          <div className="flex flex-col gap-4 p-4 brutal-border bg-[#f0f0f0]">
+            <label className="block font-bold uppercase text-sm">Ganti Background Profil (&lt; 100KB)</label>
+            {backgroundUrl && (
+              <div className="w-full h-32 brutal-border bg-gray-200">
+                <img src={backgroundUrl} alt="Background" className="w-full h-full object-cover object-center" />
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={uploadBackground}
+              disabled={uploadingBg}
+              className="w-full brutal-input bg-white text-sm"
+            />
+            {uploadingBg && <p className="text-sm font-mono">Lagi kompres dan upload...</p>}
           </div>
 
           <div>
