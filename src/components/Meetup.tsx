@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 
-export default function Meetup({ session, onUserClick }: { session: any, onUserClick: (userId: string) => void }) {
+export default function Meetup({ session, onUserClick, onRequireLogin }: { session: any, onUserClick: (userId: string) => void, onRequireLogin: () => void }) {
   const [meetups, setMeetups] = useState<any[]>([]);
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
@@ -15,15 +15,17 @@ export default function Meetup({ session, onUserClick }: { session: any, onUserC
   }, []);
 
   const fetchUserCityAndMeetups = async () => {
-    // 1. Ambil kota user saat ini
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('city')
-      .eq('id', session.user.id)
-      .single();
-
-    const city = profile?.city || null;
-    setUserCity(city);
+    // 1. Ambil kota user saat ini (jika ada session)
+    let city = null;
+    if (session) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('city')
+        .eq('id', session.user.id)
+        .single();
+      city = profile?.city || null;
+      setUserCity(city);
+    }
 
     // 2. Ambil meetups, join dengan profile pembuatnya
     const { data, error } = await supabase
@@ -80,46 +82,55 @@ export default function Meetup({ session, onUserClick }: { session: any, onUserC
           Bosen di rumah? Ajak ngopi atau mabar. Siapa tau ada yang nganggur juga di deket lu.
         </p>
 
-        <form onSubmit={handlePost} className="flex flex-col gap-4">
-          <div>
-            <label className="block font-bold mb-2 uppercase text-sm md:text-base">Agenda / Acara:</label>
-            <input
-              className="w-full brutal-input text-sm md:text-base"
-              placeholder="Misal: Ngopi ngomongin nasib, Mabar ML"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+        {session ? (
+          <form onSubmit={handlePost} className="flex flex-col gap-4">
+            <div>
+              <label className="block font-bold mb-2 uppercase text-sm md:text-base">Agenda / Acara:</label>
+              <input
+                className="w-full brutal-input text-sm md:text-base"
+                placeholder="Misal: Ngopi ngomongin nasib, Mabar ML"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block font-bold mb-2 uppercase text-sm md:text-base">Lokasi:</label>
+                <input
+                  className="w-full brutal-input text-sm md:text-base"
+                  placeholder="Warkop Berkah, Discord, dll"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label className="block font-bold mb-2 uppercase text-sm md:text-base">Kapan:</label>
+                <input
+                  className="w-full brutal-input text-sm md:text-base"
+                  placeholder="Nanti malem jam 8, Besok sore"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+            </div>
+            <button
+              className="self-end brutal-btn brutal-shadow mt-4 w-full md:w-auto"
               disabled={loading}
-            />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block font-bold mb-2 uppercase text-sm md:text-base">Lokasi:</label>
-              <input
-                className="w-full brutal-input text-sm md:text-base"
-                placeholder="Warkop Berkah, Discord, dll"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-            <div>
-              <label className="block font-bold mb-2 uppercase text-sm md:text-base">Kapan:</label>
-              <input
-                className="w-full brutal-input text-sm md:text-base"
-                placeholder="Nanti malem jam 8, Besok sore"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-          </div>
-          <button
-            className="self-end brutal-btn brutal-shadow mt-4 w-full md:w-auto"
-            disabled={loading}
+            >
+              {loading ? 'Posting...' : 'Sebarkan Undangan'}
+            </button>
+          </form>
+        ) : (
+          <div 
+            className="w-full brutal-input min-h-[100px] text-sm md:text-base flex items-center justify-center cursor-pointer text-gray-500 bg-white hover:bg-gray-100 transition-colors"
+            onClick={onRequireLogin}
           >
-            {loading ? 'Posting...' : 'Sebarkan Undangan'}
-          </button>
-        </form>
+            Login dulu napa buat ngajak nongkrong
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
@@ -152,7 +163,7 @@ export default function Meetup({ session, onUserClick }: { session: any, onUserC
               </div>
 
               {/* Tombol Hapus */}
-              {meetup.user_id === session.user.id && (
+              {session && meetup.user_id === session.user.id && (
                 <div className="mt-4 text-right">
                   <button 
                     onClick={() => handleDelete(meetup.id)}

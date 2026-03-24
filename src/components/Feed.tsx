@@ -4,7 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Heart, MessageCircle, Send, Search } from 'lucide-react';
 import { renderContentWithEmbeds } from '../utils/embedParser';
 
-export default function Feed({ session, onUserClick, onViewAllFriends, onPostClick }: { session: any, onUserClick: (userId: string) => void, onViewAllFriends: () => void, onPostClick: (postId: string) => void }) {
+export default function Feed({ session, onUserClick, onViewAllFriends, onPostClick, onRequireLogin }: { session: any, onUserClick: (userId: string) => void, onViewAllFriends: () => void, onPostClick: (postId: string) => void, onRequireLogin: () => void }) {
   const [posts, setPosts] = useState<any[]>([]);
   const [ads, setAds] = useState<any[]>([]);
   const [friends, setFriends] = useState<any[]>([]);
@@ -107,6 +107,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
   };
 
   const fetchFriends = async () => {
+    if (!session) return;
     const { data: follows } = await supabase
       .from('follows')
       .select('following_id')
@@ -164,6 +165,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
   };
 
   const toggleLike = async (postId: string, postOwnerId: string, isLiked: boolean) => {
+    if (!session) return onRequireLogin();
     if (isLiked) {
       await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', session.user.id);
     } else {
@@ -183,6 +185,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
   };
 
   const handlePostComment = async (postId: string, postOwnerId: string) => {
+    if (!session) return onRequireLogin();
     const text = commentText[postId];
     if (!text?.trim()) return;
 
@@ -257,6 +260,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
   };
 
   const handleReport = async (type: 'post' | 'comment', id: string, reportedUserId: string) => {
+    if (!session) return onRequireLogin();
     const reason = window.prompt('Kenapa lu ngelaporin ini? (Misal: spam, kasar, bokep, dll)');
     if (!reason) return;
 
@@ -362,31 +366,33 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
       )}
 
       {/* Widget Teman */}
-      <div className="mb-6 md:mb-8 p-4 brutal-border brutal-shadow bg-white">
-        <div className="flex justify-between items-center mb-4 border-b-2 border-black pb-2">
-          <h3 className="text-lg font-bold uppercase">Teman Lu</h3>
-          <button onClick={onViewAllFriends} className="text-xs font-bold uppercase hover:underline text-blue-600">Lihat Semua</button>
-        </div>
-        
-        {friends.length === 0 ? (
-          <p className="font-mono text-xs text-gray-500">Belum ada teman. Add orang gih.</p>
-        ) : (
-          <div className="flex flex-wrap gap-4">
-            {friends.map(friend => (
-              <div key={friend.id} className="flex flex-col items-center gap-1 cursor-pointer hover:opacity-80" onClick={() => onUserClick(friend.id)}>
-                <div className="w-10 h-10 md:w-12 md:h-12 brutal-border overflow-hidden bg-gray-200 rounded-full">
-                  {friend.avatar_url ? (
-                    <img src={friend.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center font-bold text-lg">?</div>
-                  )}
-                </div>
-                <span className="text-[10px] md:text-xs font-bold uppercase max-w-[60px] truncate text-center">{friend.username || 'Anonim'}</span>
-              </div>
-            ))}
+      {session && (
+        <div className="mb-6 md:mb-8 p-4 brutal-border brutal-shadow bg-white">
+          <div className="flex justify-between items-center mb-4 border-b-2 border-black pb-2">
+            <h3 className="text-lg font-bold uppercase">Teman Lu</h3>
+            <button onClick={onViewAllFriends} className="text-xs font-bold uppercase hover:underline text-blue-600">Lihat Semua</button>
           </div>
-        )}
-      </div>
+          
+          {friends.length === 0 ? (
+            <p className="font-mono text-xs text-gray-500">Belum ada teman. Add orang gih.</p>
+          ) : (
+            <div className="flex flex-wrap gap-4">
+              {friends.map(friend => (
+                <div key={friend.id} className="flex flex-col items-center gap-1 cursor-pointer hover:opacity-80" onClick={() => onUserClick(friend.id)}>
+                  <div className="w-10 h-10 md:w-12 md:h-12 brutal-border overflow-hidden bg-gray-200 rounded-full">
+                    {friend.avatar_url ? (
+                      <img src={friend.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center font-bold text-lg">?</div>
+                    )}
+                  </div>
+                  <span className="text-[10px] md:text-xs font-bold uppercase max-w-[60px] truncate text-center">{friend.username || 'Anonim'}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tampilkan Error RLS jika ada */}
       {errorMsg && (
@@ -397,22 +403,31 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
 
       <div className="mb-6 md:mb-8 p-4 md:p-6 brutal-border brutal-shadow bg-white">
         <h2 className="text-2xl md:text-3xl font-bold uppercase mb-4 border-b-4 border-black pb-2">Lempar Nasib</h2>
-        <form onSubmit={handlePost} className="flex flex-col gap-4">
-          <textarea
-            className="w-full brutal-input min-h-[100px] md:min-h-[120px] resize-none text-sm md:text-base"
-            placeholder="Gimana nasib lu hari ini? (Tekan Enter buat post, Shift+Enter buat baris baru)"
-            value={newPost}
-            onChange={(e) => setNewPost(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={loading}
-          />
-          <button
-            className="self-end brutal-btn brutal-shadow w-full md:w-auto"
-            disabled={loading}
+        {session ? (
+          <form onSubmit={handlePost} className="flex flex-col gap-4">
+            <textarea
+              className="w-full brutal-input min-h-[100px] md:min-h-[120px] resize-none text-sm md:text-base"
+              placeholder="Gimana nasib lu hari ini? (Tekan Enter buat post, Shift+Enter buat baris baru)"
+              value={newPost}
+              onChange={(e) => setNewPost(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={loading}
+            />
+            <button
+              className="self-end brutal-btn brutal-shadow w-full md:w-auto"
+              disabled={loading}
+            >
+              {loading ? 'Melempar...' : 'Lempar!'}
+            </button>
+          </form>
+        ) : (
+          <div 
+            className="w-full brutal-input min-h-[100px] md:min-h-[120px] text-sm md:text-base flex items-center justify-center cursor-pointer text-gray-500 bg-gray-50 hover:bg-gray-100 transition-colors"
+            onClick={onRequireLogin}
           >
-            {loading ? 'Melempar...' : 'Lempar!'}
-          </button>
-        </form>
+            Login dulu napa buat lempar nasib lu
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-4 md:gap-6">
@@ -426,7 +441,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
           </div>
         ) : (
           posts.map((post) => {
-          const isLiked = post.likes?.some((like: any) => like.user_id === session.user.id);
+          const isLiked = session ? post.likes?.some((like: any) => like.user_id === session.user.id) : false;
           const likeCount = post.likes?.length || 0;
           const commentCount = post.comments?.length || 0;
           const isCommentsExpanded = showComments[post.id];
@@ -488,7 +503,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
                     </button>
                     
                     {/* Tombol Hapus (Hanya muncul kalau ini post milik user yang login) */}
-                    {post.user_id === session.user.id && (
+                    {session && post.user_id === session.user.id && (
                       <button 
                         onClick={() => handleDelete(post.id)}
                         className="ml-auto text-red-600 text-xs font-bold uppercase hover:underline"
@@ -496,7 +511,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
                         Hapus
                       </button>
                     )}
-                    {post.user_id !== session.user.id && (
+                    {(!session || post.user_id !== session.user.id) && (
                       <button 
                         onClick={() => handleReport('post', post.id, post.user_id)}
                         className="ml-auto text-orange-600 text-xs font-bold uppercase hover:underline"
@@ -533,12 +548,15 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
                                   </span>
                                   <div className="flex items-center gap-2">
                                     <button 
-                                      onClick={() => setCommentText(prev => ({ ...prev, [post.id]: `@${comment.profiles?.username} ` }))}
+                                      onClick={() => {
+                                        if (!session) return onRequireLogin();
+                                        setCommentText(prev => ({ ...prev, [post.id]: `@${comment.profiles?.username} ` }));
+                                      }}
                                       className="text-[10px] font-bold uppercase text-blue-600 hover:underline"
                                     >
                                       Balas
                                     </button>
-                                    {comment.user_id === session.user.id && (
+                                    {session && comment.user_id === session.user.id && (
                                       <button 
                                         onClick={() => handleDeleteComment(comment.id)}
                                         className="text-[10px] font-bold uppercase text-red-600 hover:underline"
@@ -546,7 +564,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
                                         Hapus
                                       </button>
                                     )}
-                                    {comment.user_id !== session.user.id && (
+                                    {(!session || comment.user_id !== session.user.id) && (
                                       <button 
                                         onClick={() => handleReport('comment', comment.id, comment.user_id)}
                                         className="text-[10px] font-bold uppercase text-orange-600 hover:underline"

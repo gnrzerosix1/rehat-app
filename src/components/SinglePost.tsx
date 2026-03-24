@@ -4,7 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Heart, MessageCircle, Send } from 'lucide-react';
 import { renderContentWithEmbeds } from '../utils/embedParser';
 
-export default function SinglePost({ postId, session, onUserClick, onBack }: { postId: string, session: any, onUserClick: (userId: string) => void, onBack: () => void }) {
+export default function SinglePost({ postId, session, onUserClick, onBack, onRequireLogin }: { postId: string, session: any, onUserClick: (userId: string) => void, onBack: () => void, onRequireLogin: () => void }) {
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
@@ -39,6 +39,7 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
   };
 
   const toggleLike = async (isLiked: boolean) => {
+    if (!session) return onRequireLogin();
     if (isLiked) {
       await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', session.user.id);
     } else {
@@ -56,6 +57,7 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
   };
 
   const handlePostComment = async () => {
+    if (!session) return onRequireLogin();
     if (!commentText.trim()) return;
 
     const { error } = await supabase.from('comments').insert([
@@ -137,6 +139,7 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
   };
 
   const handleReport = async (type: 'post' | 'comment', id: string, reportedUserId: string) => {
+    if (!session) return onRequireLogin();
     const reason = window.prompt('Kenapa lu ngelaporin ini? (Misal: spam, kasar, bokep, dll)');
     if (!reason) return;
 
@@ -173,7 +176,7 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
   if (loading) return <div className="p-8 text-center font-mono font-bold uppercase">Loading postingan...</div>;
   if (!post) return <div className="p-8 text-center font-mono font-bold uppercase">Postingan nggak ketemu atau udah dihapus.</div>;
 
-  const isLiked = post.likes?.some((like: any) => like.user_id === session.user.id);
+  const isLiked = session ? post.likes?.some((like: any) => like.user_id === session.user.id) : false;
   const likeCount = post.likes?.length || 0;
   const commentCount = post.comments?.length || 0;
 
@@ -220,7 +223,7 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
                 <span>{commentCount}</span>
               </div>
               
-              {post.user_id === session.user.id && (
+              {session && post.user_id === session.user.id && (
                 <button 
                   onClick={handleDelete}
                   className="ml-auto text-red-600 text-xs font-bold uppercase hover:underline"
@@ -228,7 +231,7 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
                   Hapus
                 </button>
               )}
-              {post.user_id !== session.user.id && (
+              {(!session || post.user_id !== session.user.id) && (
                 <button 
                   onClick={() => handleReport('post', post.id, post.user_id)}
                   className="ml-auto text-orange-600 text-xs font-bold uppercase hover:underline"
@@ -262,12 +265,15 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
                           </span>
                           <div className="flex items-center gap-2">
                             <button 
-                              onClick={() => setCommentText(`@${comment.profiles?.username} `)}
+                              onClick={() => {
+                                if (!session) return onRequireLogin();
+                                setCommentText(`@${comment.profiles?.username} `);
+                              }}
                               className="text-[10px] font-bold uppercase text-blue-600 hover:underline"
                             >
                               Balas
                             </button>
-                            {comment.user_id === session.user.id && (
+                            {session && comment.user_id === session.user.id && (
                               <button 
                                 onClick={() => handleDeleteComment(comment.id)}
                                 className="text-[10px] font-bold uppercase text-red-600 hover:underline"
@@ -275,7 +281,7 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
                                 Hapus
                               </button>
                             )}
-                            {comment.user_id !== session.user.id && (
+                            {(!session || comment.user_id !== session.user.id) && (
                               <button 
                                 onClick={() => handleReport('comment', comment.id, comment.user_id)}
                                 className="text-[10px] font-bold uppercase text-orange-600 hover:underline"
@@ -306,6 +312,7 @@ export default function SinglePost({ postId, session, onUserClick, onBack }: { p
                       handlePostComment();
                     }
                   }}
+                  onClick={() => { if(!session) onRequireLogin() }}
                 />
                 <button 
                   onClick={handlePostComment}

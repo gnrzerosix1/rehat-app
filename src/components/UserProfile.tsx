@@ -4,7 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Heart, MessageCircle, Send } from 'lucide-react';
 import { renderContentWithEmbeds } from '../utils/embedParser';
 
-export default function UserProfile({ userId, session, onBack, onPostClick, onEditProfile }: { userId: string, session: any, onBack: () => void, onPostClick?: (postId: string) => void, onEditProfile?: () => void }) {
+export default function UserProfile({ userId, session, onBack, onPostClick, onEditProfile, onRequireLogin }: { userId: string, session: any, onBack: () => void, onPostClick?: (postId: string) => void, onEditProfile?: () => void, onRequireLogin: () => void }) {
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -55,6 +55,7 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
   };
 
   const checkFollowStatus = async () => {
+    if (!session) return;
     const { data } = await supabase
       .from('follows')
       .select('*')
@@ -65,6 +66,7 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
   };
 
   const toggleFollow = async () => {
+    if (!session) return onRequireLogin();
     setFollowLoading(true);
     if (isFollowing) {
       // Hapus pertemanan dari kedua sisi (biar seimbang)
@@ -92,6 +94,7 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
   };
 
   const toggleLike = async (postId: string, postOwnerId: string, isLiked: boolean) => {
+    if (!session) return onRequireLogin();
     if (isLiked) {
       await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', session.user.id);
     } else {
@@ -111,6 +114,7 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
   };
 
   const handlePostComment = async (postId: string, postOwnerId: string) => {
+    if (!session) return onRequireLogin();
     const text = commentText[postId];
     if (!text?.trim()) return;
 
@@ -185,6 +189,7 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
   };
 
   const handleReport = async (type: 'post' | 'comment', id: string, reportedUserId: string) => {
+    if (!session) return onRequireLogin();
     const reason = window.prompt('Kenapa lu ngelaporin ini? (Misal: spam, kasar, bokep, dll)');
     if (!reason) return;
 
@@ -268,7 +273,7 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
           </div>
         </div>
 
-        {userId === session.user.id ? (
+        {session && userId === session.user.id ? (
           <button
             onClick={onEditProfile}
             className="w-full py-3 font-bold uppercase border-4 border-black transition-colors brutal-shadow bg-yellow-300 text-black hover:bg-yellow-400"
@@ -296,7 +301,7 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
           <p className="font-mono text-gray-500 p-8 text-center border-2 border-dashed border-gray-400">Belum ada postingan.</p>
         ) : (
           posts.map((post) => {
-            const isLiked = post.likes?.some((like: any) => like.user_id === session.user.id);
+            const isLiked = session ? post.likes?.some((like: any) => like.user_id === session.user.id) : false;
             const likeCount = post.likes?.length || 0;
             const commentCount = post.comments?.length || 0;
             const isCommentsExpanded = showComments[post.id];
@@ -339,7 +344,7 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
                       <MessageCircle size={18} />
                       <span>{commentCount}</span>
                     </button>
-                    {post.user_id === session.user.id && (
+                    {session && post.user_id === session.user.id && (
                       <button 
                         onClick={() => handleDeletePost(post.id)}
                         className="text-red-600 text-xs font-bold uppercase hover:underline ml-2"
@@ -347,7 +352,7 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
                         Hapus
                       </button>
                     )}
-                    {post.user_id !== session.user.id && (
+                    {(!session || post.user_id !== session.user.id) && (
                       <button 
                         onClick={() => handleReport('post', post.id, post.user_id)}
                         className="text-orange-600 text-xs font-bold uppercase hover:underline ml-2"
@@ -383,12 +388,15 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
                                 </span>
                                 <div className="flex items-center gap-2">
                                   <button 
-                                    onClick={() => setCommentText(prev => ({ ...prev, [post.id]: `@${comment.profiles?.username} ` }))}
+                                    onClick={() => {
+                                      if (!session) return onRequireLogin();
+                                      setCommentText(prev => ({ ...prev, [post.id]: `@${comment.profiles?.username} ` }));
+                                    }}
                                     className="text-[10px] font-bold uppercase text-blue-600 hover:underline"
                                   >
                                     Balas
                                   </button>
-                                  {comment.user_id === session.user.id && (
+                                  {session && comment.user_id === session.user.id && (
                                     <button 
                                       onClick={() => handleDeleteComment(comment.id)}
                                       className="text-[10px] font-bold uppercase text-red-600 hover:underline"
@@ -396,7 +404,7 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
                                       Hapus
                                     </button>
                                   )}
-                                  {comment.user_id !== session.user.id && (
+                                  {(!session || comment.user_id !== session.user.id) && (
                                     <button 
                                       onClick={() => handleReport('comment', comment.id, comment.user_id)}
                                       className="text-[10px] font-bold uppercase text-orange-600 hover:underline"
@@ -428,6 +436,7 @@ export default function UserProfile({ userId, session, onBack, onPostClick, onEd
                             handlePostComment(post.id, post.user_id);
                           }
                         }}
+                        onClick={() => { if(!session) onRequireLogin() }}
                       />
                       <button 
                         onClick={() => handlePostComment(post.id, post.user_id)}

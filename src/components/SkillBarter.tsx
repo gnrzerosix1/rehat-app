@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 
-export default function SkillBarter({ session, onUserClick }: { session: any, onUserClick: (userId: string) => void }) {
+export default function SkillBarter({ session, onUserClick, onRequireLogin }: { session: any, onUserClick: (userId: string) => void, onRequireLogin: () => void }) {
   const [skills, setSkills] = useState<any[]>([]);
   const [offer, setOffer] = useState('');
   const [need, setNeed] = useState('');
@@ -59,36 +59,45 @@ export default function SkillBarter({ session, onUserClick }: { session: any, on
           Punya skill yang nggak kepake di kantor? Barter aja sama skill orang lain.
         </p>
 
-        <form onSubmit={handlePost} className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block font-bold mb-2 uppercase text-sm md:text-base">Gue Punya Skill:</label>
-              <input
-                className="w-full brutal-input bg-white text-black text-sm md:text-base"
-                placeholder="Misal: Bikin kopi enak, Excel VLOOKUP"
-                value={offer}
-                onChange={(e) => setOffer(e.target.value)}
-                disabled={loading}
-              />
+        {session ? (
+          <form onSubmit={handlePost} className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block font-bold mb-2 uppercase text-sm md:text-base">Gue Punya Skill:</label>
+                <input
+                  className="w-full brutal-input bg-white text-black text-sm md:text-base"
+                  placeholder="Misal: Bikin kopi enak, Excel VLOOKUP"
+                  value={offer}
+                  onChange={(e) => setOffer(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label className="block font-bold mb-2 uppercase text-sm md:text-base">Gue Butuh Bantuan:</label>
+                <input
+                  className="w-full brutal-input bg-white text-black text-sm md:text-base"
+                  placeholder="Misal: Benerin genteng, Bikin CV"
+                  value={need}
+                  onChange={(e) => setNeed(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
             </div>
-            <div>
-              <label className="block font-bold mb-2 uppercase text-sm md:text-base">Gue Butuh Bantuan:</label>
-              <input
-                className="w-full brutal-input bg-white text-black text-sm md:text-base"
-                placeholder="Misal: Benerin genteng, Bikin CV"
-                value={need}
-                onChange={(e) => setNeed(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-          </div>
-          <button
-            className="self-end brutal-btn-outline brutal-shadow mt-4 w-full md:w-auto"
-            disabled={loading}
+            <button
+              className="self-end brutal-btn-outline brutal-shadow mt-4 w-full md:w-auto"
+              disabled={loading}
+            >
+              {loading ? 'Posting...' : 'Tawarkan Barter'}
+            </button>
+          </form>
+        ) : (
+          <div 
+            className="w-full brutal-input min-h-[100px] text-sm md:text-base flex items-center justify-center cursor-pointer text-gray-800 bg-white hover:bg-gray-100 transition-colors"
+            onClick={onRequireLogin}
           >
-            {loading ? 'Posting...' : 'Tawarkan Barter'}
-          </button>
-        </form>
+            Login dulu napa buat nawarin skill lu
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
@@ -117,7 +126,7 @@ export default function SkillBarter({ session, onUserClick }: { session: any, on
               </div>
               
               {/* Tombol Hapus */}
-              {skill.user_id === session.user.id && (
+              {session && skill.user_id === session.user.id && (
                 <div className="mt-4 text-right">
                   <button 
                     onClick={() => handleDelete(skill.id)}

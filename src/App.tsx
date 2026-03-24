@@ -14,6 +14,7 @@ import { LogOut, Home, Briefcase, User, Users, ShieldAlert, Bell } from 'lucide-
 
 export default function App() {
   const [session, setSession] = useState<any>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'feed' | 'barter' | 'meetup' | 'profile' | 'admin' | 'userProfile' | 'friendsList' | 'notifications' | 'singlePost'>('feed');
   const [previousTab, setPreviousTab] = useState<'feed' | 'barter' | 'meetup' | 'profile' | 'admin' | 'userProfile' | 'friendsList' | 'notifications' | 'singlePost'>('feed');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -53,7 +54,7 @@ export default function App() {
     if (session) {
       fetchUnreadCount();
       checkBanAndRecordIP(session.user.id);
-      if (session.user.email === 'mediakindo@gmail.com') {
+      if (session.user?.email === 'mediakindo@gmail.com') {
         fetchPendingReportsCount();
       }
     }
@@ -111,11 +112,7 @@ export default function App() {
     setSession(null);
   };
 
-  if (!session) {
-    return <Auth onCustomLogin={(sess) => setSession(sess)} />;
-  }
-
-  const isAdmin = session.user.email === 'mediakindo@gmail.com';
+  const isAdmin = session?.user?.email === 'mediakindo@gmail.com';
 
   const handleUserClick = (userId: string) => {
     setSelectedUserId(userId);
@@ -146,7 +143,10 @@ export default function App() {
         </div>
         <div className="flex items-center gap-4">
           <button
-            onClick={() => setActiveTab('notifications')}
+            onClick={() => {
+              if (!session) return setShowAuthModal(true);
+              setActiveTab('notifications');
+            }}
             className="relative flex items-center gap-2 font-bold uppercase hover:underline text-sm md:text-base"
           >
             <Bell size={20} />
@@ -156,13 +156,23 @@ export default function App() {
               </span>
             )}
           </button>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 font-bold uppercase hover:underline text-sm md:text-base"
-          >
-            <LogOut size={20} />
-            <span className="hidden sm:inline">Keluar</span>
-          </button>
+          {session ? (
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 font-bold uppercase hover:underline text-sm md:text-base"
+            >
+              <LogOut size={20} />
+              <span className="hidden sm:inline">Keluar</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="flex items-center gap-2 font-bold uppercase hover:underline text-sm md:text-base bg-black text-white px-3 py-1 brutal-shadow"
+            >
+              <User size={16} />
+              <span className="hidden sm:inline">Masuk</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -197,11 +207,12 @@ export default function App() {
         </button>
         <button
           onClick={() => {
+            if (!session) return setShowAuthModal(true);
             setSelectedUserId(session.user.id);
             setActiveTab('userProfile');
           }}
           className={`flex-1 p-2 md:p-4 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 ${isAdmin ? 'border-r-4 border-black' : ''} transition-colors ${
-            activeTab === 'userProfile' && selectedUserId === session.user.id ? 'bg-black text-white' : 'hover:bg-gray-100'
+            activeTab === 'userProfile' && session && selectedUserId === session.user.id ? 'bg-black text-white' : 'hover:bg-gray-100'
           }`}
         >
           <User size={20} />
@@ -225,15 +236,17 @@ export default function App() {
         )}
       </nav>
 
-      {/* Main Content */}
       <main className="p-2 md:p-8 pb-24 md:pb-8">
-        {activeTab === 'feed' && <Feed session={session} onUserClick={handleUserClick} onViewAllFriends={() => setActiveTab('friendsList')} onPostClick={handlePostClick} />}
-        {activeTab === 'barter' && <SkillBarter session={session} onUserClick={handleUserClick} />}
-        {activeTab === 'meetup' && <Meetup session={session} onUserClick={handleUserClick} />}
+        {activeTab === 'feed' && <Feed session={session} onUserClick={handleUserClick} onViewAllFriends={() => {
+          if (!session) return setShowAuthModal(true);
+          setActiveTab('friendsList');
+        }} onPostClick={handlePostClick} onRequireLogin={() => setShowAuthModal(true)} />}
+        {activeTab === 'barter' && <SkillBarter session={session} onUserClick={handleUserClick} onRequireLogin={() => setShowAuthModal(true)} />}
+        {activeTab === 'meetup' && <Meetup session={session} onUserClick={handleUserClick} onRequireLogin={() => setShowAuthModal(true)} />}
         {activeTab === 'editProfile' && <Profile session={session} onBack={() => setActiveTab('userProfile')} />}
         {activeTab === 'admin' && <Admin session={session} />}
         {activeTab === 'userProfile' && selectedUserId && (
-          <UserProfile userId={selectedUserId} session={session} onBack={() => setActiveTab('feed')} onPostClick={handlePostClick} onEditProfile={() => setActiveTab('editProfile')} />
+          <UserProfile userId={selectedUserId} session={session} onBack={() => setActiveTab('feed')} onPostClick={handlePostClick} onEditProfile={() => setActiveTab('editProfile')} onRequireLogin={() => setShowAuthModal(true)} />
         )}
         {activeTab === 'friendsList' && (
           <FriendsList session={session} onUserClick={handleUserClick} onBack={() => setActiveTab('feed')} />
@@ -242,9 +255,25 @@ export default function App() {
           <Notifications session={session} onUserClick={handleUserClick} onPostClick={handlePostClick} />
         )}
         {activeTab === 'singlePost' && selectedPostId && (
-          <SinglePost postId={selectedPostId} session={session} onUserClick={handleUserClick} onBack={() => setActiveTab(previousTab)} />
+          <SinglePost postId={selectedPostId} session={session} onUserClick={handleUserClick} onBack={() => setActiveTab(previousTab)} onRequireLogin={() => setShowAuthModal(true)} />
         )}
       </main>
+
+      {/* Auth Modal Overlay */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-[100] bg-white overflow-y-auto">
+          <button 
+            onClick={() => setShowAuthModal(false)} 
+            className="fixed top-4 right-4 bg-black text-white w-10 h-10 flex items-center justify-center font-bold text-xl rounded-full brutal-shadow z-[101]"
+          >
+            ✕
+          </button>
+          <Auth onCustomLogin={(sess) => {
+            setSession(sess);
+            setShowAuthModal(false);
+          }} />
+        </div>
+      )}
     </div>
   );
 }
