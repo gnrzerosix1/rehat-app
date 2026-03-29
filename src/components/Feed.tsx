@@ -54,8 +54,8 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
     setIsSearching(false);
   };
 
-  const fetchPosts = async () => {
-    setInitialLoading(true);
+  const fetchPosts = async (showLoading = true) => {
+    if (showLoading) setInitialLoading(true);
     const { data, error } = await supabase
       .from('posts')
       .select(`
@@ -141,7 +141,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
       setErrorMsg(`Gagal posting: ${error.message}.`);
     } else {
       setNewPost('');
-      fetchPosts();
+      fetchPosts(false);
     }
     setLoading(false);
   };
@@ -160,7 +160,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
     if (error) {
       alert(`Gagal hapus: ${error.message}`);
     } else {
-      fetchPosts();
+      fetchPosts(false);
     }
   };
 
@@ -181,7 +181,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
         }]);
       }
     }
-    fetchPosts();
+    fetchPosts(false);
   };
 
   const handlePostComment = async (postId: string, postOwnerId: string) => {
@@ -237,7 +237,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
         await supabase.from('notifications').insert(notificationsToInsert);
       }
       
-      fetchPosts();
+      fetchPosts(false);
     } else {
       alert(`Gagal komen: ${error.message}`);
     }
@@ -255,7 +255,7 @@ export default function Feed({ session, onUserClick, onViewAllFriends, onPostCli
     if (error) {
       alert(`Gagal hapus komentar: ${error.message}`);
     } else {
-      fetchPosts();
+      fetchPosts(false);
     }
   };
 
