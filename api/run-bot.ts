@@ -31,10 +31,7 @@ const botTemplates = {
   ]
 };
 
-// Supabase config
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Pindah init Supabase ke dalam handler biar ketahuan kalau ENV belum diset
 
 // Username mapping
 const botUsernames = {
@@ -45,6 +42,13 @@ const botUsernames = {
 
 export default async function handler(req, res) {
   try {
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase URL atau Key belum diset di Vercel Environment Variables!' });
+    }
+    const supabase = createClient(supabaseUrl, supabaseKey);
     const { type } = req.query; // type: 'sambat', 'curhat', 'loker'
     if (!type || !['sambat', 'curhat', 'loker'].includes(type)) {
       return res.status(400).json({ error: 'Kasih type yang bener: sambat, curhat, loker' });
