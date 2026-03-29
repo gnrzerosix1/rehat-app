@@ -70,28 +70,36 @@ export default async function handler(req, res) {
 
     const botUserId = profileData.id;
     let contentToPost = '';
+    let chosenUsername = botUsername;
 
     // 2. Tentukan Konten berdasarkan Tipe
     if (type === 'loker') {
-      // Scrape data dari loker.id
-      const response = await fetch('https://www.loker.id/terbaru', {
-        headers: { 'User-Agent': 'Mozilla/5.0' }
+      // Ambil 1 loker terbaru dari beranda
+      const response = await fetch('https://www.loker.id/', {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
+        }
       });
-      const htmlString = await response.text();
-      const $ = load(htmlString);
+      const html = await response.text();
+      const $ = load(html);
       
-      // Ambil loker pertama (paling terbaru)
-      const firstJob = $('.job-box').first();
-      const jobTitle = firstJob.find('h3 a').text().trim();
-      const jobLink = firstJob.find('h3 a').attr('href');
-      const company = firstJob.find('.job-company').text().trim();
-      const location = firstJob.find('.job-location').text().trim();
-
+      const firstJob = $('article.card').first();
+      const jobTitle = firstJob.find('h3').text().trim();
+      const company = firstJob.find('span.text-secondary-500').first().text().trim();
+      const location = firstJob.find('.opacity-50 span[translate="no"]').text().trim();
+      let jobUrl = firstJob.find('a').attr('href') || '';
+      
       if (!jobTitle) {
         throw new Error('Gagal scrape loker. Struktur HTML mungkin berubah.');
       }
+      if (jobUrl && !jobUrl.startsWith('http')) {
+        jobUrl = 'https://www.loker.id' + jobUrl;
+      }
 
-      contentToPost = `✨ LOKER TERBARU HARI INI ✨\n\nPosisi: ${jobTitle}\nPerusahaan: ${company}\nLokasi: ${location}\n\nLangsung aja ngacir apply di mari: ${jobLink}\n\nYok yang masih ngerem di kosan, semangat! 💪`;
+      contentToPost = `Loker terbaru nih! 💼\n\nPosisi: ${jobTitle}\nPT: ${company}\nLokasi: ${location}\n\nSelengkapnya tembak ke: ${jobUrl}\n\nAda yang lagi cari kerjaan ginian? Gas ngab!`;
+      chosenUsername = botUsernames.loker;
     } else {
       // Ambil template random buat sambat/curhat
       const list = botTemplates[type];
