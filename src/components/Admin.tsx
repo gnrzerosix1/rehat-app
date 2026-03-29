@@ -14,6 +14,8 @@ export default function Admin({ session }: { session: any }) {
   const [welcomeTextLoading, setWelcomeTextLoading] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [reports, setReports] = useState<any[]>([]);
+  const [botLoading, setBotLoading] = useState<string | null>(null);
+  const [botMessage, setBotMessage] = useState('');
 
   // Ganti dengan email lu yang jadi admin
   const ADMIN_EMAIL = 'mediakindo@gmail.com';
@@ -178,6 +180,27 @@ export default function Admin({ session }: { session: any }) {
     }
   };
 
+  const handleRunBot = async (type: 'sambat' | 'curhat' | 'loker') => {
+    setBotLoading(type);
+    setBotMessage('');
+    try {
+      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      // Pada Vite dev, api/ mungkin nggak jalan kecuali pake vercel dev. Tapi kita tetep coba hit
+      const res = await fetch(`/api/run-bot?type=${type}`);
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Server error pas ngejalanin bot');
+      }
+      
+      setBotMessage(`Berhasil nyuntik bot! (${data.bot} ngepost: "${data.content.substring(0, 30)}...")`);
+    } catch (e: any) {
+      setBotMessage(`Gagal: ${e.message}`);
+    } finally {
+      setBotLoading(null);
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="max-w-2xl mx-auto p-8 brutal-border brutal-shadow bg-red-500 text-white text-center">
@@ -266,6 +289,45 @@ export default function Admin({ session }: { session: any }) {
             <span className="text-4xl font-bold">{userCount}</span>
           </div>
           <p className="text-xs text-gray-500 mt-4 font-mono">*User online real-time butuh upgrade Supabase Realtime.</p>
+        </div>
+
+        {/* Bot Runner Manual */}
+        <div className="p-6 brutal-border bg-green-100 md:col-span-2">
+          <h3 className="text-xl font-bold uppercase mb-2 border-b-2 border-black pb-2">🤖 Suntik Bot Rehat (Manual)</h3>
+          <p className="font-mono text-sm text-gray-700 mb-4">
+            Klik buat maksa Bot ngepost sekarang juga. Pastiin lu udah bikin 3 akun dengan username berikut: <br/>
+            <strong>sipaling_sambat</strong>, <strong>pemancing_curhat</strong>, <strong>sipalingupdate</strong>.
+          </p>
+          
+          <div className="flex flex-wrap gap-4">
+            <button 
+              onClick={() => handleRunBot('loker')}
+              disabled={botLoading !== null}
+              className="brutal-btn brutal-shadow bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50"
+            >
+              {botLoading === 'loker' ? 'Scraping Loker...' : '💼 Suntik Bot Loker'}
+            </button>
+            <button 
+              onClick={() => handleRunBot('curhat')}
+              disabled={botLoading !== null}
+              className="brutal-btn brutal-shadow bg-pink-500 text-white hover:bg-pink-600 disabled:opacity-50"
+            >
+              {botLoading === 'curhat' ? 'Mancing...' : '🎣 Suntik Pemancing Curhat'}
+            </button>
+            <button 
+              onClick={() => handleRunBot('sambat')}
+              disabled={botLoading !== null}
+              className="brutal-btn brutal-shadow bg-gray-700 text-white hover:bg-gray-800 disabled:opacity-50"
+            >
+              {botLoading === 'sambat' ? 'Ngos-ngosan...' : '🤬 Suntik Si Paling Sambat'}
+            </button>
+          </div>
+          
+          {botMessage && (
+            <div className={`mt-4 p-3 brutal-border text-sm font-mono ${botMessage.startsWith('Berhasil') ? 'bg-white' : 'bg-red-200 text-red-800'}`}>
+              {botMessage}
+            </div>
+          )}
         </div>
 
         {/* Edit Welcome Text */}
